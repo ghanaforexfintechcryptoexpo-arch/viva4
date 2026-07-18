@@ -21,7 +21,7 @@ export default function LazyImage({
   sizes,
   ...props
 }: LazyImageProps) {
-  const [isIntersected, setIsIntersected] = useState(false);
+  const [isIntersected, setIsIntersected] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
   const [imgSrc, setImgSrc] = useState(src);
   const [hasError, setHasError] = useState(false);
@@ -96,7 +96,7 @@ export default function LazyImage({
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: isLoaded ? 1 : 0, scale: isLoaded ? 1 : 0.96 }}
           transition={{ duration: 0.35, ease: "easeOut" }}
-          className={`${className || ""} ${isLoaded ? "block" : "hidden"}`}
+          className={className || ""}
           {...responsiveAttrs}
           {...props}
         />
