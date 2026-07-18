@@ -1,0 +1,107 @@
+{
+  "entities": {
+    "support_ticket": {
+      "title": "Support Ticket",
+      "description": "A customer care support ticket",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "orderNum": { "type": "string", "maxLength": 64 },
+        "topic": { "type": "string", "maxLength": 64 },
+        "message": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "email", "topic", "message"]
+    },
+    "user_review": {
+      "title": "User Review",
+      "description": "A product review from a user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "productId": { "type": "string", "maxLength": 64 },
+        "author": { "type": "string", "maxLength": 100 },
+        "verified": { "type": "boolean" },
+        "rating": { "type": "integer" },
+        "date": { "type": "string", "maxLength": 64 },
+        "title": { "type": "string", "maxLength": 150 },
+        "comment": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string" },
+        "userId": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["productId", "author", "rating", "comment"]
+    },
+    "user_order": {
+      "title": "User Order",
+      "description": "A completed checkout order",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "shipName": { "type": "string", "maxLength": 100 },
+        "shipEmail": { "type": "string", "maxLength": 150 },
+        "shipAddress": { "type": "string", "maxLength": 200 },
+        "shipCity": { "type": "string", "maxLength": 100 },
+        "shipZip": { "type": "string", "maxLength": 20 },
+        "subtotal": { "type": "number" },
+        "shippingCharge": { "type": "number" },
+        "total": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "items": { "type": "array" }
+      },
+      "required": ["shipName", "shipEmail", "shipAddress", "shipCity", "shipZip", "total", "items"]
+    },
+    "product": {
+      "title": "Product Formula",
+      "description": "A dynamic bio-active formulation listed in the store",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "tagline": { "type": "string", "maxLength": 200 },
+        "goal": { "type": "string", "maxLength": 50 },
+        "shortHook": { "type": "string", "maxLength": 1000 },
+        "basePrice": { "type": "number" },
+        "rating": { "type": "number" },
+        "reviewsCount": { "type": "integer" },
+        "colorTheme": { "type": "string", "maxLength": 30 },
+        "imageUrl": { "type": "string" },
+        "imageUrls": { "type": "array" },
+        "videoUrl": { "type": "string" },
+        "sizes": { "type": "array" },
+        "benefits": { "type": "array" },
+        "activeIngredients": { "type": "array" },
+        "directions": { "type": "string" },
+        "storageWarnings": { "type": "array" },
+        "colorGradStart": { "type": "string", "maxLength": 20 },
+        "colorGradEnd": { "type": "string", "maxLength": 20 },
+        "seoTitle": { "type": "string", "maxLength": 200 },
+        "seoDescription": { "type": "string", "maxLength": 500 },
+        "detailedCopy": { "type": "string", "maxLength": 2000 },
+        "specifications": { "type": "array" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "goal", "basePrice", "colorTheme", "colorGradStart", "colorGradEnd", "benefits", "activeIngredients", "directions", "storageWarnings"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "product",
+      "description": "Storefront bio-active formulation entries managed by administrators"
+    },
+    "/support_tickets/{ticketId}": {
+      "schema": "support_ticket",
+      "description": "Customer support tickets submitted via contact form"
+    },
+    "/user_reviews/{reviewId}": {
+      "schema": "user_review",
+      "description": "Product reviews displayed on the product detail page"
+    },
+    "/user_orders/{orderId}": {
+      "schema": "user_order",
+      "description": "Completed checkout orders with shipping details"
+    }
+  }
+}
