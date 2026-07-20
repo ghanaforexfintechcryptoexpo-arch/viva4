@@ -18,6 +18,7 @@ import AdminPanel from "./components/AdminPanel";
 import SlidesWorkspace from "./components/SlidesWorkspace";
 import AiLabWorkspace from "./components/AiLabWorkspace";
 import { motion, AnimatePresence } from "motion/react";
+import { Leaf } from "lucide-react";
 import { auth, db, handleFirestoreError, OperationType } from "./lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, onSnapshot } from "firebase/firestore";
@@ -31,6 +32,25 @@ export default function App() {
   const [selectedProductId, setSelectedProductId] = useState<string>("proviva");
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState<boolean>(true);
+  const [loadingMessage, setLoadingMessage] = useState<string>("Establishing secure database connection...");
+
+  // Cycle through elegant clinical status messages during loading
+  useEffect(() => {
+    if (!isLoadingProducts) return;
+    const messages = [
+      "Establishing secure connection to clinical databases...",
+      "Syncing dynamic botanical inventory from Firestore...",
+      "Initializing high-fidelity formulation models...",
+      "Optimizing organic cellular science indexes...",
+      "Calibrating therapeutic dose matrices...",
+    ];
+    let index = 0;
+    const interval = setInterval(() => {
+      index = (index + 1) % messages.length;
+      setLoadingMessage(messages[index]);
+    }, 1200);
+    return () => clearInterval(interval);
+  }, [isLoadingProducts]);
   const [currency, setCurrency] = useState<CurrencyType>(() => {
     try {
       const saved = localStorage.getItem("proviva_currency");
@@ -246,6 +266,120 @@ export default function App() {
 
   return (
     <div className="flex flex-col min-h-screen bg-white text-slate-800 antialiased">
+      
+      {/* Subtle, Elegant Clinical Initialization Loader */}
+      <AnimatePresence>
+        {isLoadingProducts && (
+          <motion.div
+            key="app-loader"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, y: -20, transition: { duration: 0.5, ease: "easeInOut" } }}
+            className="fixed inset-0 z-50 bg-slate-50 flex flex-col items-center justify-center p-6 text-center select-none"
+          >
+            {/* Elegant outer pulse ring and inner spinning rings */}
+            <div className="relative w-32 h-32 mb-8 flex items-center justify-center">
+              {/* Outer pulsing therapeutic wave */}
+              <motion.div
+                className="absolute inset-0 rounded-full border border-emerald-500/20"
+                animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0.1, 0.6] }}
+                transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+              />
+              <motion.div
+                className="absolute -inset-4 rounded-full border border-purple-500/10"
+                animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0.05, 0.4] }}
+                transition={{ repeat: Infinity, duration: 4, ease: "easeInOut", delay: 0.5 }}
+              />
+
+              {/* Inner gradient glowing backplate */}
+              <div className="absolute inset-4 rounded-full bg-gradient-to-tr from-emerald-50 to-purple-50 filter blur-xs" />
+
+              {/* Precise rotating clinical border arc */}
+              <svg className="absolute w-24 h-24 rotate-[-90deg]">
+                <motion.circle
+                  cx="48"
+                  cy="48"
+                  r="44"
+                  className="stroke-emerald-500 fill-none"
+                  strokeWidth="2.5"
+                  strokeDasharray="276"
+                  animate={{ strokeDashoffset: [276, 0] }}
+                  transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
+                />
+                <motion.circle
+                  cx="48"
+                  cy="48"
+                  r="38"
+                  className="stroke-purple-400 fill-none opacity-40"
+                  strokeWidth="1.5"
+                  strokeDasharray="238"
+                  animate={{ strokeDashoffset: [0, 238] }}
+                  transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+                />
+              </svg>
+
+              {/* Pulsing center icon representing botanical cells */}
+              <motion.div
+                className="absolute flex items-center justify-center text-emerald-600"
+                animate={{ scale: [0.95, 1.08, 0.95] }}
+                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+              >
+                <Leaf className="w-10 h-10" />
+              </motion.div>
+            </div>
+
+            {/* Display Typography */}
+            <motion.h2
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-2xl font-extrabold tracking-[0.25em] text-slate-900 mb-1 font-sans uppercase"
+            >
+              ProViva
+            </motion.h2>
+            
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-[10px] font-mono uppercase tracking-[0.18em] text-slate-400 mb-6 font-semibold"
+            >
+              Cellular Therapeutics & Organic Science
+            </motion.p>
+
+            {/* Dynamic Status Loading Text */}
+            <div className="h-6 flex items-center justify-center mb-4">
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={loadingMessage}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.25 }}
+                  className="text-xs font-medium text-slate-600 max-w-sm"
+                >
+                  {loadingMessage}
+                </motion.p>
+              </AnimatePresence>
+            </div>
+
+            {/* Elegant horizontal progressive loader */}
+            <div className="w-56 h-[3px] bg-slate-100 rounded-full overflow-hidden relative">
+              <motion.div
+                className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-emerald-500 via-teal-500 to-purple-600 rounded-full"
+                animate={{
+                  x: ["-100%", "100%"]
+                }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 1.8,
+                  ease: "easeInOut"
+                }}
+                style={{ width: "60%" }}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* Global Navigation and Header */}
       <Header

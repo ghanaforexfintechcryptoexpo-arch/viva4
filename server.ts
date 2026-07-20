@@ -1,7 +1,7 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI, GenerateVideosOperation } from "@google/genai";
+import { GoogleGenAI, GenerateVideosOperation, ThinkingLevel } from "@google/genai";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -64,8 +64,9 @@ app.post("/api/gemini/chat", async (req, res) => {
       tools = [{ googleSearch: {} }];
     }
 
+    const isPro = mode === "pro";
     const response = await ai.models.generateContent({
-      model: mode === "pro" ? "gemini-3.1-pro-preview" : "gemini-3.5-flash",
+      model: isPro ? "gemini-3.1-pro-preview" : "gemini-3.5-flash",
       contents,
       config: {
         systemInstruction: `You are Dr. Julian Sterling, lead formulation scientist at ProViva Clinic.
@@ -82,6 +83,7 @@ Answer queries with extreme scientific depth, therapeutic warmth, and clear stru
 If Maps mode is enabled, provide exact location suggestions, clinics, or organic stores.
 If Search mode is enabled, ground your insights in recent clinical findings or organic research.`,
         tools,
+        thinkingConfig: isPro ? { thinkingLevel: ThinkingLevel.HIGH } : undefined,
       },
     });
 
