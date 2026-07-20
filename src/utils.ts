@@ -59,10 +59,7 @@ export function generateSrcSet(src: string): { srcSet?: string; sizes?: string }
     };
   }
 
-  // Fallback for local storefront assets (retina density support)
-  return {
-    srcSet: `${src} 1x, ${src} 2x`,
-    sizes: "(max-width: 768px) 100vw, 50vw",
-  };
+  // Fallback for local storefront assets: simple src is much more robust
+  return {};
 }
 

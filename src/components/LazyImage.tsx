@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { generateSrcSet } from "../utils";
 
@@ -24,6 +24,7 @@ export default function LazyImage({
   const [isLoaded, setIsLoaded] = useState(false);
   const [imgSrc, setImgSrc] = useState(src);
   const [hasError, setHasError] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   // Generate responsive attributes unless explicitly overridden
   const responsiveAttrs = srcSet ? { srcSet, sizes } : generateSrcSet(src);
@@ -31,41 +32,22 @@ export default function LazyImage({
   useEffect(() => {
     setImgSrc(src);
     setHasError(false);
-    setIsLoaded(false);
-  }, [src]);
 
-  // Preload and cache check to completely avoid browser caching event-binding race conditions
-  useEffect(() => {
-    const img = new Image();
-    img.src = imgSrc;
-    if (responsiveAttrs.srcSet) img.srcset = responsiveAttrs.srcSet;
-    if (responsiveAttrs.sizes) img.sizes = responsiveAttrs.sizes;
-
-    const handleLoad = () => {
+    // If the browser already has the image fully cached and complete, show it immediately
+    if (imgRef.current && imgRef.current.complete) {
       setIsLoaded(true);
-    };
-
-    const handleError = () => {
-      if (!hasError) {
-        setHasError(true);
-        setImgSrc("/images/proviva_bottle_1784028385805.jpg");
-      } else {
-        setIsLoaded(true);
-      }
-    };
-
-    if (img.complete) {
-      handleLoad();
-    } else {
-      img.addEventListener("load", handleLoad);
-      img.addEventListener("error", handleError);
+      return;
     }
 
-    return () => {
-      img.removeEventListener("load", handleLoad);
-      img.removeEventListener("error", handleError);
-    };
-  }, [imgSrc, responsiveAttrs.srcSet, responsiveAttrs.sizes, hasError]);
+    setIsLoaded(false);
+
+    // Safety net: force-display the image after 1.2s to guarantee it is visible even if onLoad event misses
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [src]);
 
   return (
     <div
@@ -80,6 +62,7 @@ export default function LazyImage({
       )}
 
       <motion.img
+        ref={imgRef}
         src={imgSrc}
         alt={alt}
         loading="lazy"

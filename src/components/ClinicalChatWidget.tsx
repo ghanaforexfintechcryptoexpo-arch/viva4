@@ -99,7 +99,7 @@ export default function ClinicalChatWidget({ products, currency = "USD" }: Clini
     return "That is an excellent physiological query. To provide the best support, could you specify which health goals (e.g., prostate comfort, liver rejuvenation, cardiovascular strength, or digestive absorption) you are currently prioritizing in your daily regimen?";
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
@@ -116,16 +116,49 @@ export default function ClinicalChatWidget({ products, currency = "USD" }: Clini
 
     // Simulate specialist typing delay
     setIsTyping(true);
-    setTimeout(() => {
+
+    try {
+      const res = await fetch("/api/gemini/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: userQuery,
+          history: messages.slice(-5).map((m) => ({
+            sender: m.sender === "user" ? "user" : "assistant",
+            text: m.text,
+          })),
+          mode: "standard",
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error();
+      }
+
+      const data = await res.json();
       setIsTyping(false);
-      const specialistResponse: Message = {
-        id: Math.random().toString(),
-        sender: "specialist",
-        text: getClinicalResponse(userQuery),
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, specialistResponse]);
-    }, 1200);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Math.random().toString(),
+          sender: "specialist",
+          text: data.text,
+          timestamp: new Date(),
+        },
+      ]);
+    } catch {
+      // Fallback to static offline responses
+      setTimeout(() => {
+        setIsTyping(false);
+        const specialistResponse: Message = {
+          id: Math.random().toString(),
+          sender: "specialist",
+          text: getClinicalResponse(userQuery),
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, specialistResponse]);
+      }, 1000);
+    }
   };
 
   return (

@@ -4,6 +4,7 @@ import { PRODUCTS } from "../data";
 import { Product, ProductSize } from "../types";
 import { CurrencyType, formatPrice, generateSrcSet } from "../utils";
 import ProductCard from "./ProductCard";
+import ProductCardSkeleton from "./ProductCardSkeleton";
 import StarRating from "./StarRating";
 import LazyImage from "./LazyImage";
 import CustomerReviews from "./CustomerReviews";
@@ -13,19 +14,19 @@ import { motion, AnimatePresence } from "motion/react";
 const getBenefitIconUrl = (productId: string) => {
   switch (productId) {
     case "proviva":
-      return "/images/benefit_prostate_1784123913701.jpg";
+      return "/images/benefit_prostate.jpg";
     case "vivalax":
-      return "/images/benefit_digestion_1784123928705.jpg";
+      return "/images/benefit_digestion.jpg";
     case "vivadio":
-      return "/images/benefit_heart_1784123939646.jpg";
+      return "/images/benefit_heart.jpg";
     case "vivaplus":
-      return "/images/benefit_detox_1784123951053.jpg";
+      return "/images/benefit_detox.jpg";
     case "vivanego":
-      return "/images/benefit_pain_1784123962379.jpg";
+      return "/images/benefit_pain.jpg";
     case "hepaviva":
-      return "/images/benefit_liver_1784123980196.jpg";
+      return "/images/benefit_liver.jpg";
     case "nephroviva":
-      return "/images/benefit_kidney_1784123993165.jpg";
+      return "/images/benefit_kidney.jpg";
     default:
       return null;
   }
@@ -152,6 +153,7 @@ interface HomepageProps {
   ) => void;
   currentUser?: any;
   products?: Product[];
+  isLoadingProducts?: boolean;
   currency?: CurrencyType;
 }
 
@@ -162,6 +164,7 @@ export default function Homepage({
   onAddToCart, 
   currentUser,
   products = [],
+  isLoadingProducts = false,
   currency = "USD"
 }: HomepageProps) {
   const storeProducts = React.useMemo(() => {
@@ -747,29 +750,45 @@ export default function Homepage({
 
           {/* ACTIVE PRODUCT CARD GRID */}
           <motion.div 
-            key={deferredFilter}
+            key={isLoadingProducts ? "loading-skeletons" : deferredFilter}
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-60px" }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
           >
-            {filteredProducts.map((prod) => (
-              <motion.div 
-                key={prod.id} 
-                variants={itemVariants}
-                className="h-full"
-              >
-                <ProductCard
-                  product={prod}
-                  onNavigate={onNavigate}
-                  onQuickAdd={onQuickAdd}
-                  ratingInfo={productRatings?.[prod.id]}
-                  onQuickView={handleOpenQuickView}
-                  currency={currency}
-                />
-              </motion.div>
-            ))}
+            {isLoadingProducts ? (
+              [...Array(3)].map((_, i) => (
+                <motion.div 
+                  key={`skeleton-${i}`} 
+                  variants={itemVariants}
+                  className="h-full"
+                >
+                  <ProductCardSkeleton />
+                </motion.div>
+              ))
+            ) : filteredProducts.length === 0 ? (
+              <div className="col-span-full py-16 text-center">
+                <p className="text-slate-500 font-medium">No products found matching the criteria.</p>
+              </div>
+            ) : (
+              filteredProducts.map((prod) => (
+                <motion.div 
+                  key={prod.id} 
+                  variants={itemVariants}
+                  className="h-full"
+                >
+                  <ProductCard
+                    product={prod}
+                    onNavigate={onNavigate}
+                    onQuickAdd={onQuickAdd}
+                    ratingInfo={productRatings?.[prod.id]}
+                    onQuickView={handleOpenQuickView}
+                    currency={currency}
+                  />
+                </motion.div>
+              ))
+            )}
           </motion.div>
 
         </div>

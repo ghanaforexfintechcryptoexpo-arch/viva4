@@ -380,6 +380,17 @@ export default function Header({
               </button>
 
               <button 
+                onClick={() => onNavigate("ai-lab")}
+                className={`text-sm font-medium transition-colors flex items-center gap-1 ${currentView === "ai-lab" ? "text-emerald-600 font-semibold font-bold" : "text-slate-600 hover:text-slate-900"}`}
+              >
+                AI Wellness Lab
+                <span className="bg-purple-100 text-purple-800 text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-0.5">
+                  <Sparkles className="w-2.5 h-2.5" />
+                  AI
+                </span>
+              </button>
+
+              <button 
                 onClick={() => onNavigate("admin")}
                 className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${currentView === "admin" ? "text-emerald-600 font-semibold" : "text-slate-600 hover:text-slate-900"}`}
               >
@@ -566,6 +577,13 @@ export default function Header({
           className="bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600"
         >
           Slides
+        </button>
+        <button 
+          onClick={() => onNavigate("ai-lab")}
+          className="bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-purple-700 flex items-center gap-1 shrink-0"
+        >
+          <Sparkles className="w-3 h-3 text-purple-500" />
+          AI Lab
         </button>
         <button 
           onClick={() => setConsultationModalOpen(true)}

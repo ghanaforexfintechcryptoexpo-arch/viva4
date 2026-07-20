@@ -16,6 +16,7 @@ import FAQ from "./components/FAQ";
 import CartDrawer from "./components/CartDrawer";
 import AdminPanel from "./components/AdminPanel";
 import SlidesWorkspace from "./components/SlidesWorkspace";
+import AiLabWorkspace from "./components/AiLabWorkspace";
 import { motion, AnimatePresence } from "motion/react";
 import { auth, db, handleFirestoreError, OperationType } from "./lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -29,6 +30,7 @@ export default function App() {
   const [currentView, setCurrentView] = useState<string>("homepage");
   const [selectedProductId, setSelectedProductId] = useState<string>("proviva");
   const [products, setProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState<boolean>(true);
   const [currency, setCurrency] = useState<CurrencyType>(() => {
     try {
       const saved = localStorage.getItem("proviva_currency");
@@ -60,15 +62,18 @@ export default function App() {
         } else {
           setProducts(PRODUCTS);
         }
+        setIsLoadingProducts(false);
       }, (err) => {
         console.error("Error listening to dynamic products: ", err);
         setProducts(PRODUCTS);
+        setIsLoadingProducts(false);
         handleFirestoreError(err, OperationType.LIST, "products");
       });
       return () => unsubscribe();
     } catch (e) {
       console.error("Firestore products stream creation failed: ", e);
       setProducts(PRODUCTS);
+      setIsLoadingProducts(false);
     }
   }, []);
 
@@ -276,6 +281,7 @@ export default function App() {
                 onAddToCart={handleAddToCart}
                 currentUser={currentUser}
                 products={products}
+                isLoadingProducts={isLoadingProducts}
                 currency={currency}
               />
             )}
@@ -306,6 +312,8 @@ export default function App() {
             )}
 
             {currentView === "slides" && <SlidesWorkspace />}
+
+            {currentView === "ai-lab" && <AiLabWorkspace />}
           </motion.div>
         </AnimatePresence>
       </div>

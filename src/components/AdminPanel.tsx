@@ -183,6 +183,10 @@ export default function AdminPanel({ currentUser, products, onNavigate }: AdminP
   // --- FILE DRAG & DROP & LOCAL READS ---
   const compressImage = (base64Str: string, maxWidth = 500, maxHeight = 500, quality = 0.6): Promise<string> => {
     return new Promise((resolve) => {
+      if (!base64Str || !base64Str.startsWith("data:image/")) {
+        resolve(base64Str);
+        return;
+      }
       const img = new Image();
       img.src = base64Str;
       img.onload = () => {
@@ -207,7 +211,19 @@ export default function AdminPanel({ currentUser, products, onNavigate }: AdminP
         const ctx = canvas.getContext("2d");
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL("image/jpeg", quality));
+          const compressed = canvas.toDataURL("image/jpeg", quality);
+          
+          // If the compressed size is still over 150KB and we can compress further, do so recursively
+          if (compressed.length > 150000 && (maxWidth > 150 || quality > 0.25)) {
+            compressImage(
+              base64Str,
+              Math.max(120, Math.round(maxWidth * 0.7)),
+              Math.max(120, Math.round(maxHeight * 0.7)),
+              Math.max(0.2, quality * 0.7)
+            ).then(resolve);
+          } else {
+            resolve(compressed);
+          }
         } else {
           resolve(base64Str);
         }
@@ -378,6 +394,42 @@ export default function AdminPanel({ currentUser, products, onNavigate }: AdminP
 
     setIsSubmitting(true);
     try {
+      // Ensure payload size is within Firestore's 1MB limit
+      let payloadSize = JSON.stringify(payload).length;
+      if (payloadSize > 800000) {
+        showToast("Formulation payload is large. Automatically optimizing images to fit database constraints...", "success");
+        
+        // 1. Optimize main imageUrl if it is a base64 string
+        if (payload.imageUrl && payload.imageUrl.startsWith("data:image/") && payload.imageUrl.length > 100000) {
+          const optimized = await compressImage(payload.imageUrl, 250, 250, 0.4);
+          payload.imageUrl = optimized;
+        }
+        
+        // 2. Optimize other imageUrls if they are base64 strings
+        if (payload.imageUrls && payload.imageUrls.length > 0) {
+          const optimizedUrls = [];
+          for (const url of payload.imageUrls) {
+            if (url.startsWith("data:image/") && url.length > 100000) {
+              const optimized = await compressImage(url, 250, 250, 0.4);
+              optimizedUrls.push(optimized);
+            } else {
+              optimizedUrls.push(url);
+            }
+          }
+          payload.imageUrls = optimizedUrls;
+        }
+
+        // Re-calculate size after optimization
+        payloadSize = JSON.stringify(payload).length;
+        if (payloadSize > 800000) {
+          showToast(`Formulation exceeds Firestore's size limit (${(payloadSize / 1024 / 1024).toFixed(2)} MB). Please remove some high-resolution images or reduce text description.`, "error");
+          setIsSubmitting(false);
+          return;
+        } else {
+          showToast("Images optimized successfully!", "success");
+        }
+      }
+
       if (isAdmin && !sandboxMode) {
         // Write directly to cloud Firestore
         const docRef = doc(db, "products", payload.id);
