@@ -673,7 +673,7 @@ export default function CustomerReviews({ currentUser, products, currency }: Cus
                           type="text"
                           required
                           maxLength={100}
-                          placeholder="e.g. Catherine L. or Dr. Sarah Sterling, PhD"
+                          placeholder="e.g. Catherine L. or Dr. Sarah Vance, PhD"
                           value={reviewAuthor}
                           onChange={(e) => setReviewAuthor(e.target.value)}
                           className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:border-emerald-500 focus:outline-none"

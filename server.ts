@@ -41,20 +41,41 @@ function getAiClient(): GoogleGenAI {
 // 1. Clinical Chat & Grounding Endpoint
 app.post("/api/gemini/chat", async (req, res) => {
   try {
-    const { message, history, mode } = req.body;
+    const { message, history, mode, image } = req.body;
     const ai = getAiClient();
 
     // Setup contents array with history
     const contents: any[] = [];
     if (history && Array.isArray(history)) {
       history.forEach((msg: any) => {
+        // Only include non-empty or properly formatted text history
         contents.push({
           role: msg.sender === "user" ? "user" : "model",
-          parts: [{ text: msg.text }],
+          parts: [{ text: msg.text || "" }],
         });
       });
     }
-    contents.push({ role: "user", parts: [{ text: message }] });
+
+    // Build parts for the current message
+    const currentParts: any[] = [];
+    
+    // If base64 image data is supplied, decode and inject as inlineData part
+    if (image) {
+      const matches = image.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+      if (matches && matches.length >= 3) {
+        currentParts.push({
+          inlineData: {
+            mimeType: matches[1],
+            data: matches[2],
+          },
+        });
+      }
+    }
+
+    // Add text part (always present)
+    currentParts.push({ text: message || "Analyze this." });
+
+    contents.push({ role: "user", parts: currentParts });
 
     // Determine tool config based on grounding mode
     let tools: any[] | undefined = undefined;
@@ -64,12 +85,15 @@ app.post("/api/gemini/chat", async (req, res) => {
       tools = [{ googleSearch: {} }];
     }
 
-    const isPro = mode === "pro";
+    // Force Pro model for image analysis or custom pro mode
+    const isPro = !!image || mode === "pro";
+    const model = isPro ? "gemini-3.1-pro-preview" : "gemini-3.5-flash";
+
     const response = await ai.models.generateContent({
-      model: isPro ? "gemini-3.1-pro-preview" : "gemini-3.5-flash",
+      model,
       contents,
       config: {
-        systemInstruction: `You are Dr. Julian Sterling, lead formulation scientist at ProViva Clinic.
+        systemInstruction: `You are the lead formulation scientist at ProViva Clinic.
 ProViva Clinic specializes in highly advanced, natural, organic herbal supplements:
 1. HepaViva Herbal Tablets (Liver) - Pure Support for Your Body's Ultimate Filter. Contains Milk Thistle, NAC, Artichoke.
 2. NephroViva Herbal Tablets (Kidney) - Premium Care for Your Renal Wellness.
@@ -81,7 +105,8 @@ ProViva Clinic specializes in highly advanced, natural, organic herbal supplemen
 
 Answer queries with extreme scientific depth, therapeutic warmth, and clear structure.
 If Maps mode is enabled, provide exact location suggestions, clinics, or organic stores.
-If Search mode is enabled, ground your insights in recent clinical findings or organic research.`,
+If Search mode is enabled, ground your insights in recent clinical findings or organic research.
+If the user uploads an image, perform professional, high-fidelity visual analysis (image understanding) to evaluate packaging labels, list ingredients, detect active compounds, or review plant characteristics. Highlight clinical dosage details or botanical science.`,
         tools,
         thinkingConfig: isPro ? { thinkingLevel: ThinkingLevel.HIGH } : undefined,
       },

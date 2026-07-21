@@ -451,7 +451,7 @@ export default function CartDrawer({
                               required
                               value={shipName}
                               onChange={(e) => setShipName(e.target.value)}
-                              placeholder="Dr. Abigail Sterling"
+                              placeholder="Dr. Abigail Vance"
                               className="w-full border border-slate-200 bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-100 outline-none rounded-xl px-4 py-2.5 text-sm transition-all"
                             />
                           </div>
@@ -463,7 +463,7 @@ export default function CartDrawer({
                               required
                               value={shipEmail}
                               onChange={(e) => setShipEmail(e.target.value)}
-                              placeholder="sterling@clinicalwellness.com"
+                              placeholder="vance@clinicalwellness.com"
                               className="w-full border border-slate-200 bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-100 outline-none rounded-xl px-4 py-2.5 text-sm transition-all"
                             />
                           </div>

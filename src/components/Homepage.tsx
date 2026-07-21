@@ -189,6 +189,23 @@ export default function Homepage({
   const [hoveredIngredientIdx, setHoveredIngredientIdx] = useState<number | null>(null);
   const [activeLiveShopper, setActiveLiveShopper] = useState<any | null>(null);
 
+  // Parallax offset state for dynamic hero imagery interactive movement
+  const [parallaxOffset, setParallaxOffset] = useState({ x: 0, y: 0 });
+
+  const handleHeroMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    // Normalize coordinates between -1 and 1
+    const x = (e.clientX - rect.left - width / 2) / (width / 2);
+    const y = (e.clientY - rect.top - height / 2) / (height / 2);
+    setParallaxOffset({ x, y });
+  };
+
+  const handleHeroMouseLeave = () => {
+    setParallaxOffset({ x: 0, y: 0 });
+  };
+
   // Flying-to-cart animation elements state
   interface FlyingItem {
     id: number;
@@ -378,15 +395,12 @@ export default function Homepage({
     }
   };
 
-  const filterCategories = ["All", "Heart", "Liver", "Digestion", "Prostate", "Pain Relief", "Immune"];
+  const filterCategories = React.useMemo(() => ["All", "Heart", "Liver", "Digestion", "Prostate", "Pain Relief", "Immune", "Kidney"], []);
 
   const filteredProducts = React.useMemo(() => {
-    const filtered = storeProducts.filter((prod) => {
-      if (deferredFilter === "All") return true;
-      return prod.goal === deferredFilter;
-    });
-
-    return [...filtered].sort((a, b) => {
+    // Keep all products sorted, as we organize them into distinct category sections
+    // that are always scrollable and tracked by the sticky horizontal scroll-spy bar!
+    return [...storeProducts].sort((a, b) => {
       if (sortBy === "price-asc") {
         return a.basePrice - b.basePrice;
       }
@@ -406,7 +420,106 @@ export default function Homepage({
       }
       return 0;
     });
-  }, [storeProducts, deferredFilter, sortBy, productRatings]);
+  }, [storeProducts, sortBy, productRatings]);
+
+  const isClickScrolling = React.useRef(false);
+
+  // Scroll spy IntersectionObserver to highlight currently active category
+  React.useEffect(() => {
+    const observerOptions = {
+      root: null,
+      rootMargin: "-120px 0px -50% 0px", // focus on the upper-middle viewport region
+      threshold: 0,
+    };
+
+    const handleIntersection = (entries: IntersectionObserverEntry[]) => {
+      if (isClickScrolling.current) return;
+
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          const categorySlug = id.replace("category-section-", "");
+          const matched = filterCategories.find(
+            (cat) => cat.toLowerCase().replace(/\s+/g, "-") === categorySlug
+          );
+          if (matched) {
+            setActiveFilter(matched);
+          }
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(handleIntersection, observerOptions);
+
+    const sections = document.querySelectorAll("[id^='category-section-']");
+    sections.forEach((section) => observer.observe(section));
+
+    // Also observe the top of the collection catalog to trigger "All"
+    const headerObserverOptions = {
+      root: null,
+      rootMargin: "-80px 0px 0px 0px",
+      threshold: 0,
+    };
+    
+    const handleHeaderIntersection = (entries: IntersectionObserverEntry[]) => {
+      if (isClickScrolling.current) return;
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setActiveFilter("All");
+        }
+      });
+    };
+    
+    const headerObserver = new IntersectionObserver(handleHeaderIntersection, headerObserverOptions);
+    const catalogHeader = document.getElementById("catalog-header-trigger");
+    if (catalogHeader) {
+      headerObserver.observe(catalogHeader);
+    }
+
+    return () => {
+      sections.forEach((section) => observer.unobserve(section));
+      if (catalogHeader) {
+        headerObserver.unobserve(catalogHeader);
+      }
+    };
+  }, [storeProducts, filterCategories]);
+
+  const handleCategoryClick = (cat: string) => {
+    isClickScrolling.current = true;
+    setActiveFilter(cat);
+
+    if (cat === "All") {
+      const element = document.getElementById("collection-catalog");
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    } else {
+      const element = document.getElementById(`category-section-${cat.toLowerCase().replace(/\s+/g, "-")}`);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    // Unlock observer after scroll completes
+    setTimeout(() => {
+      isClickScrolling.current = false;
+    }, 1000);
+  };
+
+  const categoryScrollRef = React.useRef<HTMLDivElement>(null);
+
+  // Smoothly center the active category item in the horizontal scroll container when activeFilter changes
+  React.useEffect(() => {
+    if (!categoryScrollRef.current) return;
+    const activeBtn = categoryScrollRef.current.querySelector('[data-active="true"]');
+    if (activeBtn) {
+      activeBtn.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center"
+      });
+    }
+  }, [activeFilter]);
 
   return (
     <div id="homepage-root" className="bg-white min-h-screen">
@@ -494,111 +607,105 @@ export default function Homepage({
 
             </motion.div>
 
-            {/* RIGHT GRAPHICAL BOTTLE LINEUP DISPLAY */}
+            {/* RIGHT GRAPHICAL HIGH-RESOLUTION CLINICAL POSTER DISPLAY */}
             <motion.div 
-              className="lg:col-span-5 relative flex justify-center items-center mt-4 sm:mt-0"
+              className="lg:col-span-5 relative flex justify-center items-center mt-6 lg:mt-0"
               variants={heroImageVariants}
               initial="hidden"
               animate="visible"
+              onMouseMove={handleHeroMouseMove}
+              onMouseLeave={handleHeroMouseLeave}
+              style={{ perspective: 1200 }}
             >
               
               <motion.div 
-                className="relative w-72 h-80 sm:w-80 sm:h-96 bg-gradient-to-tr from-emerald-100/30 to-teal-100/30 rounded-full flex items-center justify-center p-4 shadow-[0_0_40px_rgba(16,185,129,0.1)]"
+                className="relative w-full max-w-[420px] aspect-square rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(15,118,110,0.15)] border border-slate-200/60 bg-white group p-2 select-none cursor-pointer"
                 animate={{
-                  scale: [1, 1.04, 1],
-                  opacity: [0.9, 1, 0.9],
-                  boxShadow: [
-                    "0 0 40px rgba(16, 185, 129, 0.1)",
-                    "0 0 60px rgba(20, 184, 166, 0.25)",
-                    "0 0 40px rgba(16, 185, 129, 0.1)"
-                  ]
+                  rotateX: parallaxOffset.y * -14,
+                  rotateY: parallaxOffset.x * 14,
+                  x: parallaxOffset.x * 6,
+                  y: parallaxOffset.y * 6,
                 }}
-                transition={{
-                  duration: 6,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
+                transition={{ type: "spring", stiffness: 150, damping: 25 }}
+                style={{ transformStyle: "preserve-3d" }}
               >
-                {/* Background ambient light */}
-                <div className="absolute inset-0 bg-white/40 backdrop-blur-3xl rounded-full" />
-
-                {/* Overlapping supplement bottles representing the lineup */}
-                <div className="relative flex items-center justify-center gap-1 w-full h-full min-h-[220px]">
+                {/* Clean white high-tech container backing */}
+                <div className="absolute inset-0 bg-slate-50 opacity-50" />
+                
+                {/* Main Premium Marketing Graphic */}
+                <motion.div 
+                  className="relative w-full h-full rounded-2xl overflow-hidden"
+                  animate={{
+                    x: parallaxOffset.x * -8,
+                    y: parallaxOffset.y * -8,
+                  }}
+                  transition={{ type: "spring", stiffness: 150, damping: 25 }}
+                >
+                  <LazyImage 
+                    src="/images/proviva_hero_banner.jpg" 
+                    alt="ProViva Premium Clinical Botanical Science and Supplement Lineup" 
+                    placeholderHeight="h-full"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                  />
                   
-                  {/* Left bottle (HepaViva) */}
-                  <motion.button
-                    type="button"
-                    whileHover={{ scale: 1.15, zIndex: 30, rotate: -4 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                    onClick={() => hepavivaProduct && handleOpenQuickView(hepavivaProduct)}
-                    className="w-24 h-36 sm:w-28 sm:h-44 rounded-2xl shadow-xl -rotate-12 -translate-x-2 translate-y-2 opacity-90 flex-shrink-0 overflow-hidden border border-slate-200/80 bg-white cursor-pointer p-2 flex items-center justify-center relative group"
-                    title="Quick View HepaViva"
+                  {/* Subtle Elegant Botanical Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-slate-950/10 pointer-events-none" />
+
+                  {/* Top-Right High-Fidelity Active Biotech Badge (Pushed Forward) */}
+                  <motion.div 
+                    className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm border border-emerald-500/10"
+                    animate={{
+                      x: parallaxOffset.x * 12,
+                      y: parallaxOffset.y * 12,
+                    }}
+                    transition={{ type: "spring", stiffness: 150, damping: 25 }}
                   >
-                    <LazyImage 
-                      src="/images/hepaviva_bottle_1783968164066.jpg" 
-                      alt="HepaViva Herbal Tablets" 
-                      placeholderHeight="h-full"
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-contain filter drop-shadow-sm transition-transform duration-300 group-hover:scale-105"
-                    />
-                    <div className="absolute bottom-1 bg-slate-900/80 text-white text-[7px] font-mono font-bold uppercase px-1 py-0.5 rounded tracking-wide opacity-0 group-hover:opacity-100 transition-opacity">
-                      HepaViva
-                    </div>
-                  </motion.button>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[9px] font-mono font-extrabold uppercase text-slate-800 tracking-wider">Active Biotech</span>
+                  </motion.div>
 
-                  {/* Center main bottle (ProViva) */}
-                  <motion.button
-                    type="button"
-                    whileHover={{ scale: 1.15, zIndex: 30, rotate: 2 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                    onClick={() => provivaProduct && handleOpenQuickView(provivaProduct)}
-                    className="w-28 h-44 sm:w-32 sm:h-52 rounded-2xl shadow-2xl relative z-10 flex-shrink-0 overflow-hidden border-2 border-emerald-100/80 bg-white cursor-pointer p-2 flex items-center justify-center group"
-                    title="Quick View ProViva"
+                  {/* Bottom Info Overlay Panel */}
+                  <motion.div 
+                    className="absolute bottom-0 inset-x-0 p-4 sm:p-6 bg-gradient-to-t from-slate-950/85 via-slate-950/50 to-transparent flex flex-col justify-end text-left"
+                    animate={{
+                      x: parallaxOffset.x * 4,
+                      y: parallaxOffset.y * 4,
+                    }}
+                    transition={{ type: "spring", stiffness: 150, damping: 25 }}
                   >
-                    <LazyImage 
-                      src="/images/proviva_bottle_1784028385805.jpg" 
-                      alt="ProViva Herbal Tablets" 
-                      placeholderHeight="h-full"
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-contain filter drop-shadow-md transition-transform duration-300 group-hover:scale-105"
-                    />
-                    <div className="absolute bottom-2 bg-emerald-600/90 text-white text-[8px] font-mono font-bold uppercase px-1.5 py-0.5 rounded tracking-wide opacity-0 group-hover:opacity-100 transition-opacity">
-                      ProViva
-                    </div>
-                  </motion.button>
+                    <span className="text-[9px] font-mono font-bold text-emerald-400 uppercase tracking-[0.2em] mb-1">Clinic Formulation No. 1</span>
+                    <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">Cellular Therapy & Advanced Organic Delivery</h3>
+                    <p className="text-[10px] text-slate-300 mt-1 leading-relaxed max-w-xs font-sans">
+                      Engineered for maximum bio-absorption using cold-extraction active botanicals.
+                    </p>
+                  </motion.div>
+                </motion.div>
 
-                  {/* Right bottle (VivaDio) */}
-                  <motion.button
-                    type="button"
-                    whileHover={{ scale: 1.15, zIndex: 30, rotate: 4 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                    onClick={() => vivadioProduct && handleOpenQuickView(vivadioProduct)}
-                    className="w-24 h-36 sm:w-28 sm:h-44 rounded-2xl shadow-xl rotate-12 translate-x-2 translate-y-2 opacity-90 flex-shrink-0 overflow-hidden border border-slate-200/80 bg-white cursor-pointer p-2 flex items-center justify-center relative group"
-                    title="Quick View VivaDio"
-                  >
-                    <LazyImage 
-                      src="/images/vivadio_bottle_1783967163297.jpg" 
-                      alt="VivaDio Herbal Tablets" 
-                      placeholderHeight="h-full"
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-contain filter drop-shadow-sm transition-transform duration-300 group-hover:scale-105"
-                    />
-                    <div className="absolute bottom-1 bg-slate-900/80 text-white text-[7px] font-mono font-bold uppercase px-1 py-0.5 rounded tracking-wide opacity-0 group-hover:opacity-100 transition-opacity">
-                      VivaDio
-                    </div>
-                  </motion.button>
-
-                </div>
-
-                {/* Circular glow badge */}
-                <div className="absolute -bottom-4 right-4 bg-emerald-600 text-white font-mono text-[9px] font-bold p-3 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white leading-none">
+                {/* Floating Bioactive 99% Gold Medallion Badge (Pushed much more forward for 3D parallax pop!) */}
+                <motion.div 
+                  className="absolute -bottom-3 -right-3 bg-emerald-600 text-white font-mono text-[10px] font-bold w-14 h-14 rounded-full flex flex-col items-center justify-center shadow-lg border-2 border-white leading-none tracking-tight z-10"
+                  animate={{
+                    x: parallaxOffset.x * 26,
+                    y: (parallaxOffset.y * 26) - 3,
+                  }}
+                  transition={{ type: "spring", stiffness: 150, damping: 25 }}
+                >
                   <span>BIO</span>
-                  <span>99%</span>
-                </div>
+                  <span className="text-xs font-extrabold">99%</span>
+                </motion.div>
 
+                {/* Glass-morphic Clinical verification pill (Pushed forward moderately) */}
+                <motion.div 
+                  className="absolute -bottom-3 left-6 bg-slate-900/90 backdrop-blur-md text-slate-200 font-mono text-[8px] font-extrabold uppercase tracking-[0.15em] px-4 py-2 rounded-xl shadow-md border border-slate-800"
+                  animate={{
+                    x: parallaxOffset.x * 16,
+                    y: parallaxOffset.y * 16,
+                  }}
+                  transition={{ type: "spring", stiffness: 150, damping: 25 }}
+                >
+                  Scientifically Formulated
+                </motion.div>
               </motion.div>
 
             </motion.div>
@@ -669,7 +776,7 @@ export default function Homepage({
                   QA
                 </span>
                 <div>
-                  <span className="text-sm font-bold text-white block">Dr. Sarah Sterling, PhD</span>
+                  <span className="text-sm font-bold text-white block">Dr. Sarah Vance, PhD</span>
                   <span className="text-xs text-slate-400 block">Lead Phytochemical Quality Analyst</span>
                 </div>
               </div>
@@ -691,11 +798,14 @@ export default function Homepage({
       </section>
 
       {/* FEATURED COLLECTIONS CATALOG GRID */}
-      <section id="collection-catalog" className="py-20 bg-slate-50/50">
+      <section id="collection-catalog" className="py-12 bg-slate-50/50 scroll-mt-20">
+        
+        {/* Invisible trigger to detect when user scrolls back to the very top of catalog */}
+        <div id="catalog-header-trigger" className="h-1" />
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          {/* Header & Filter Controls */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
             <div>
               <span className="text-[10px] font-mono font-bold text-emerald-600 uppercase tracking-widest block">
                 Targeted Botanical Support
@@ -707,91 +817,156 @@ export default function Homepage({
                 Explore our pure, highly-bioavailable dietary formulations tailored for distinct vital wellness vectors.
               </p>
             </div>
+          </div>
+        </div>
 
-            {/* Filter and Sort Group */}
-            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4 w-full lg:w-auto">
-              {/* Category Filter Pills */}
-              <div className="flex flex-wrap gap-2">
-                {filterCategories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setActiveFilter(cat)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-mono font-semibold transition-all cursor-pointer ${
-                      activeFilter === cat
-                        ? "bg-slate-950 text-white shadow-sm"
-                        : "bg-white text-slate-600 border border-slate-200 hover:border-slate-300"
-                    }`}
-                  >
-                    {cat === "All" ? "Shop All" : cat}
-                  </button>
+        {/* STICKY HORIZONTAL SCROLL CATEGORY NAVIGATION BAR */}
+        <div className="sticky top-[80px] z-30 bg-white/95 backdrop-blur-md border-y border-slate-200/60 shadow-xs py-3.5 mb-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+            
+            {/* Scrollable category list with fade indicators */}
+            <div className="relative flex-1 flex items-center overflow-hidden min-w-0">
+              {/* Left fade indicator */}
+              <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-white to-transparent pointer-events-none z-10" />
+              
+              {/* Horizontal Scrollable Container */}
+              <div 
+                ref={categoryScrollRef}
+                className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 flex-grow scroll-smooth select-none px-6"
+              >
+                {filterCategories.map((cat) => {
+                  const isActive = activeFilter === cat;
+                  return (
+                    <button
+                      key={cat}
+                      data-active={isActive}
+                      onClick={() => handleCategoryClick(cat)}
+                      className={`px-4 py-2 rounded-full text-xs font-mono font-bold transition-all cursor-pointer whitespace-nowrap relative shrink-0 ${
+                        isActive
+                          ? "bg-slate-950 text-white shadow-sm scale-102"
+                          : "bg-slate-100/70 hover:bg-slate-100 text-slate-600 border border-transparent hover:border-slate-200"
+                      }`}
+                    >
+                      {cat === "All" ? "Shop All" : cat}
+                      {isActive && (
+                        <motion.span
+                          layoutId="activeCategoryDot"
+                          className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-emerald-500 rounded-full"
+                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Right fade indicator */}
+              <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
+            </div>
+
+            {/* Sorting Dropdown integrated right inside the sticky bar */}
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-full px-3 py-1.5 shadow-3xs hover:border-slate-300 transition-colors shrink-0">
+              <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider hidden sm:inline">Sort:</span>
+              <select
+                id="product-sort-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="bg-transparent text-xs font-sans font-semibold text-slate-700 outline-none cursor-pointer pr-1 select-none"
+              >
+                <option value="featured">Featured / Default</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="rating-desc">Rating: Highest First</option>
+                <option value="name-asc">Name: A to Z</option>
+                <option value="name-desc">Name: Z to A</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
+        {/* CATEGORIES SECTIONS STACKED VERTICALLY */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="space-y-16">
+            {isLoadingProducts ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {[...Array(3)].map((_, i) => (
+                  <div key={`skeleton-${i}`} className="h-full">
+                    <ProductCardSkeleton />
+                  </div>
                 ))}
               </div>
+            ) : (() => {
+              // Extract sub-categories containing items (filtering based on search/sort filteredProducts)
+              const activeCategoryItems = filterCategories.filter(cat => cat !== "All");
 
-              {/* Sorting Dropdown */}
-              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-full px-3 py-1.5 shadow-2xs hover:border-slate-300 transition-colors shrink-0">
-                <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider hidden sm:inline">Sort:</span>
-                <select
-                  id="product-sort-select"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-transparent text-xs font-sans font-semibold text-slate-700 outline-none cursor-pointer pr-1 select-none"
-                >
-                  <option value="featured">Featured / Default</option>
-                  <option value="price-asc">Price: Low to High</option>
-                  <option value="price-desc">Price: High to Low</option>
-                  <option value="rating-desc">Rating: Highest First</option>
-                  <option value="name-asc">Name: A to Z</option>
-                  <option value="name-desc">Name: Z to A</option>
-                </select>
-              </div>
-            </div>
+              // Empty State
+              if (filteredProducts.length === 0) {
+                return (
+                  <div className="py-20 text-center bg-white border border-slate-100 rounded-3xl shadow-xs">
+                    <p className="text-slate-500 font-medium font-sans">No pure botanical formulations match your criteria.</p>
+                  </div>
+                );
+              }
+
+              return activeCategoryItems.map((cat) => {
+                const categoryProducts = filteredProducts.filter((p) => p.goal === cat);
+                if (categoryProducts.length === 0) return null;
+
+                return (
+                  <div
+                    key={cat}
+                    id={`category-section-${cat.toLowerCase().replace(/\s+/g, "-")}`}
+                    className="scroll-mt-36"
+                  >
+                    {/* Category Header */}
+                    <div className="border-b border-slate-200/60 pb-3 mb-8 flex justify-between items-end">
+                      <div>
+                        <span className="text-[10px] font-mono font-bold text-emerald-600 uppercase tracking-widest block">
+                          Botanical Vector Support
+                        </span>
+                        <h3 className="text-xl sm:text-2xl font-sans font-black text-slate-900 mt-1">
+                          {cat} Formulations
+                        </h3>
+                      </div>
+                      <span className="text-xs font-mono text-slate-400 font-bold bg-white border border-slate-200 px-3 py-1 rounded-full shadow-3xs">
+                        {categoryProducts.length} {categoryProducts.length === 1 ? "Formula" : "Formulas"}
+                      </span>
+                    </div>
+
+                    {/* Category Products Responsive Grid */}
+                    <motion.div
+                      variants={containerVariants}
+                      initial="hidden"
+                      whileInView="visible"
+                      viewport={{ once: true, margin: "-40px" }}
+                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+                    >
+                      {categoryProducts.map((prod) => (
+                        <motion.div
+                          key={prod.id}
+                          variants={itemVariants}
+                          className="h-full"
+                        >
+                          <ProductCard
+                            product={prod}
+                            onNavigate={onNavigate}
+                            onQuickAdd={onQuickAdd}
+                            ratingInfo={productRatings?.[prod.id]}
+                            onQuickView={handleOpenQuickView}
+                            currency={currency}
+                          />
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  </div>
+                );
+              });
+            })()}
           </div>
-
-          {/* ACTIVE PRODUCT CARD GRID */}
-          <motion.div 
-            key={isLoadingProducts ? "loading-skeletons" : deferredFilter}
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-60px" }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
-          >
-            {isLoadingProducts ? (
-              [...Array(3)].map((_, i) => (
-                <motion.div 
-                  key={`skeleton-${i}`} 
-                  variants={itemVariants}
-                  className="h-full"
-                >
-                  <ProductCardSkeleton />
-                </motion.div>
-              ))
-            ) : filteredProducts.length === 0 ? (
-              <div className="col-span-full py-16 text-center">
-                <p className="text-slate-500 font-medium">No products found matching the criteria.</p>
-              </div>
-            ) : (
-              filteredProducts.map((prod) => (
-                <motion.div 
-                  key={prod.id} 
-                  variants={itemVariants}
-                  className="h-full"
-                >
-                  <ProductCard
-                    product={prod}
-                    onNavigate={onNavigate}
-                    onQuickAdd={onQuickAdd}
-                    ratingInfo={productRatings?.[prod.id]}
-                    onQuickView={handleOpenQuickView}
-                    currency={currency}
-                  />
-                </motion.div>
-              ))
-            )}
-          </motion.div>
-
         </div>
+
       </section>
 
       {/* CUSTOMER REVIEWS MODULE */}

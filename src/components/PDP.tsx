@@ -821,7 +821,7 @@ export default function PDP({ product, onAddToCart, onNavigate, currentUser, pro
                             required
                             value={reviewAuthor}
                             onChange={(e) => setReviewAuthor(e.target.value)}
-                            placeholder="Dr. Sterling"
+                            placeholder="Dr. Abigail Vance"
                             className="w-full border border-slate-200 focus:border-emerald-500 rounded-lg p-2 text-xs outline-none bg-slate-50"
                           />
                         </div>

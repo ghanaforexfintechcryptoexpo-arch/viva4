@@ -45,6 +45,21 @@ export default function ProductCard({ product, onNavigate, onQuickAdd, ratingInf
               placeholderHeight="h-36"
               referrerPolicy="no-referrer"
               className="max-h-36 max-w-full object-contain rounded-2xl drop-shadow-md"
+              customPlaceholder={
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-50/40 rounded-2xl animate-pulse" id={`product-image-skeleton-${product.id}`}>
+                  {/* Jar/Bottle Silhouette Shimmer Placeholder */}
+                  <div className="w-16 h-28 bg-slate-200 rounded-2xl relative shadow-3xs flex flex-col justify-between overflow-hidden border border-slate-300/40">
+                    {/* Cap area */}
+                    <div className="absolute top-0 w-full h-3 bg-slate-300" />
+                    {/* Label area inside silhouette */}
+                    <div className="bg-white mx-1.5 my-1.5 mt-5 rounded-lg p-1 text-center flex-1 flex flex-col justify-between shadow-3xs">
+                      <div className="h-2 bg-slate-100 rounded-xs w-5/6 mx-auto mt-1" />
+                      <div className="h-1 bg-slate-100 rounded-xs w-2/3 mx-auto" />
+                      <div className="h-2 bg-slate-200 rounded-xs w-3/4 mx-auto mb-1" />
+                    </div>
+                  </div>
+                </div>
+              }
             />
           ) : (
             <>

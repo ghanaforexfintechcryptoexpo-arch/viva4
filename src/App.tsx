@@ -76,7 +76,36 @@ export default function App() {
         if (!snapshot.empty) {
           const loadedProducts: Product[] = [];
           snapshot.forEach((doc) => {
-            loadedProducts.push({ id: doc.id, ...doc.data() } as Product);
+            const data = doc.data();
+            const staticProduct = PRODUCTS.find((p) => p.id === doc.id);
+            // Deep merge static default properties with Firestore document data to safeguard against corrupt or incomplete database records
+            const mergedProduct: Product = {
+              ...staticProduct,
+              ...data,
+              id: doc.id,
+              // Special safeguard: make sure sizes array is valid and non-empty
+              sizes: Array.isArray(data.sizes) && data.sizes.length > 0 
+                ? data.sizes 
+                : (staticProduct?.sizes || [{ name: "180 Tablets (Standard)", count: 180, priceModifier: 1.0 }]),
+              benefits: Array.isArray(data.benefits) && data.benefits.length > 0 
+                ? data.benefits 
+                : (staticProduct?.benefits || []),
+              activeIngredients: Array.isArray(data.activeIngredients) && data.activeIngredients.length > 0 
+                ? data.activeIngredients 
+                : (staticProduct?.activeIngredients || []),
+              storageWarnings: Array.isArray(data.storageWarnings) && data.storageWarnings.length > 0 
+                ? data.storageWarnings 
+                : (staticProduct?.storageWarnings || []),
+              specifications: Array.isArray(data.specifications) && data.specifications.length > 0 
+                ? data.specifications 
+                : (staticProduct?.specifications || []),
+              // If imageUrl is empty, use static fallback
+              imageUrl: data.imageUrl || staticProduct?.imageUrl || "/images/placeholder.png",
+              imageUrls: Array.isArray(data.imageUrls) && data.imageUrls.length > 0
+                ? data.imageUrls
+                : (staticProduct?.imageUrls || [data.imageUrl || staticProduct?.imageUrl || "/images/placeholder.png"])
+            } as Product;
+            loadedProducts.push(mergedProduct);
           });
           setProducts(loadedProducts);
         } else {

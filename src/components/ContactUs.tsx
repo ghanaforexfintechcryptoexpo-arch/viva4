@@ -112,7 +112,7 @@ export default function ContactUs() {
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Abigail Sterling"
+                      placeholder="Abigail Vance"
                       className="w-full border border-slate-200 bg-white focus:border-emerald-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
                     />
                   </div>
@@ -126,7 +126,7 @@ export default function ContactUs() {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="sterling@wellness.com"
+                      placeholder="vance@wellness.com"
                       className="w-full border border-slate-200 bg-white focus:border-emerald-500 rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
                     />
                   </div>

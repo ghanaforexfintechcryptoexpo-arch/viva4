@@ -10,6 +10,7 @@ interface Message {
   text: string;
   timestamp: Date;
   groundingMetadata?: any;
+  image?: string;
 }
 
 export default function AiLabWorkspace() {
@@ -30,11 +31,13 @@ export default function AiLabWorkspace() {
   const [chatInput, setChatInput] = useState("");
   const [chatMode, setChatMode] = useState<"standard" | "search" | "maps" | "pro">("standard");
   const [chatLoading, setChatLoading] = useState(false);
+  const [chatImage, setChatImage] = useState<string | null>(null);
+  const chatImageInputRef = useRef<HTMLInputElement>(null);
   const [chatMessages, setChatMessages] = useState<Message[]>([
     {
       id: "init",
       sender: "ai",
-      text: "Welcome to the ProViva AI Clinical Lab. I am Dr. Julian Sterling. I am powered directly by Gemini to help clarify the cellular science, herbal pathways, or location finders for our natural therapeutic products. How may I assist you today?",
+      text: "Welcome to the ProViva AI Clinical Lab. Our interactive system is powered directly by Gemini to help clarify the cellular science, herbal pathways, or location finders for our natural therapeutic products. How may I assist you today? Feel free to upload an image of a supplement bottle, botanical plant, or label for clinical analysis.",
       timestamp: new Date(),
     },
   ]);
@@ -46,17 +49,22 @@ export default function AiLabWorkspace() {
 
   const handleChatSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim() || chatLoading) return;
+    if ((!chatInput.trim() && !chatImage) || chatLoading) return;
 
+    const textToSend = chatInput.trim() || "Evaluate the uploaded clinical image.";
     const userMsg: Message = {
       id: Math.random().toString(),
       sender: "user",
-      text: chatInput,
+      text: textToSend,
       timestamp: new Date(),
+      image: chatImage || undefined,
     };
+
+    const imageToSend = chatImage;
 
     setChatMessages((prev) => [...prev, userMsg]);
     setChatInput("");
+    setChatImage(null);
     setChatLoading(true);
 
     try {
@@ -73,6 +81,7 @@ export default function AiLabWorkspace() {
           message: userMsg.text,
           history,
           mode: chatMode,
+          image: imageToSend,
         }),
       });
 
@@ -109,7 +118,7 @@ export default function AiLabWorkspace() {
         {
           id: Math.random().toString(),
           sender: "ai",
-          text: `[Error]: ${err.message || "Failed to communicate with Dr. Sterling. Please try again."}`,
+          text: `[Error]: ${err.message || "Failed to communicate with AI Laboratory. Please try again."}`,
           timestamp: new Date(),
         },
       ]);
@@ -124,7 +133,7 @@ export default function AiLabWorkspace() {
   const [genPrompt, setGenPrompt] = useState("");
   const [genQuality, setGenQuality] = useState<"standard" | "high">("standard");
   const [genSize, setGenSize] = useState<"1K" | "2K" | "4K">("1K");
-  const [genRatio, setGenRatio] = useState<"1:1" | "16:9" | "9:16" | "4:3">("1:1");
+  const [genRatio, setGenRatio] = useState<"1:1" | "2:3" | "3:2" | "3:4" | "4:3" | "9:16" | "16:9" | "21:9">("1:1");
   const [genLoading, setGenLoading] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
@@ -536,7 +545,7 @@ export default function AiLabWorkspace() {
               <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
                 <div>
                   <h3 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                    Dr. Julian Sterling (AI Scientist)
+                    ProViva Clinical AI
                     <span className="bg-emerald-500 w-2 h-2 rounded-full inline-block animate-ping" />
                   </h3>
                   <p className="text-xs text-slate-500">Formulation research, dosage compliance, and ingredient profiles.</p>
@@ -584,6 +593,11 @@ export default function AiLabWorkspace() {
                           : "bg-slate-100 text-slate-800 font-sans rounded-bl-none border border-slate-200/50"
                       }`}
                     >
+                      {msg.image && (
+                        <div className="mb-2 rounded-xl overflow-hidden border border-slate-200 bg-white max-w-xs shadow-xs">
+                          <img src={msg.image} alt="Uploaded for analysis" className="w-full h-auto object-cover max-h-48" />
+                        </div>
+                      )}
                       <p className="whitespace-pre-wrap">{msg.text}</p>
                       
                       {msg.sender === "ai" && msg.groundingMetadata && (
@@ -615,25 +629,68 @@ export default function AiLabWorkspace() {
                   <div className="flex justify-start">
                     <div className="bg-slate-100 text-slate-500 rounded-2xl px-4 py-3 text-sm flex items-center gap-2 font-mono">
                       <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
-                      <span>Dr. Sterling is analyzing clinical parameters...</span>
+                      <span>AI Lab is analyzing clinical parameters...</span>
                     </div>
                   </div>
                 )}
                 <div ref={chatEndRef} />
               </div>
 
+              {/* IMAGE ATTACHMENT PREVIEW */}
+              {chatImage && (
+                <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center gap-3">
+                  <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200">
+                    <img src={chatImage} alt="Attachment Preview" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setChatImage(null)}
+                      className="absolute top-0 right-0 bg-red-500 hover:bg-red-600 text-white rounded-full p-0.5"
+                      style={{ transform: "translate(25%, -25%)" }}
+                    >
+                      <span className="text-[9px] font-bold block leading-none px-1">✕</span>
+                    </button>
+                  </div>
+                  <span className="text-[11px] text-slate-500 font-medium">Ready for clinical evaluation</span>
+                </div>
+              )}
+
               {/* INPUT FORM */}
-              <form onSubmit={handleChatSend} className="p-4 border-t border-slate-100 bg-slate-50 flex gap-3">
+              <form onSubmit={handleChatSend} className="p-4 border-t border-slate-100 bg-slate-50 flex gap-3 items-center">
+                <input
+                  type="file"
+                  ref={chatImageInputRef}
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        if (event.target?.result) {
+                          setChatImage(event.target.result as string);
+                        }
+                      };
+                      reader.readAsDataURL(e.target.files[0]);
+                    }
+                  }}
+                  className="hidden"
+                  accept="image/*"
+                />
+                <button
+                  type="button"
+                  onClick={() => chatImageInputRef.current?.click()}
+                  className="p-3 text-slate-500 hover:text-purple-600 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all cursor-pointer"
+                  title="Attach clinical photo or packaging label"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                </button>
                 <input
                   type="text"
-                  placeholder={`Ask Dr. Sterling about saw palmetto, milk thistle, dosage guidelines...`}
+                  placeholder={`Ask about saw palmetto, milk thistle, or attach image...`}
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-600 text-slate-800 font-sans"
                 />
                 <button
                   type="submit"
-                  disabled={!chatInput.trim() || chatLoading}
+                  disabled={(!chatInput.trim() && !chatImage) || chatLoading}
                   className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-200 disabled:text-slate-400 text-white p-3 rounded-xl transition-all cursor-pointer shadow-md shadow-purple-100 shrink-0"
                 >
                   <Send className="w-4 h-4" />
@@ -685,9 +742,13 @@ export default function AiLabWorkspace() {
                         className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs font-semibold focus:outline-none focus:border-purple-600"
                       >
                         <option value="1:1">1:1 Square</option>
-                        <option value="16:9">16:9 Landscape</option>
-                        <option value="9:16">9:16 Portrait</option>
+                        <option value="2:3">2:3 Photo Portrait</option>
+                        <option value="3:2">3:2 Photo Landscape</option>
+                        <option value="3:4">3:4 Classic Portrait</option>
                         <option value="4:3">4:3 Standard</option>
+                        <option value="9:16">9:16 Cinematic Portrait</option>
+                        <option value="16:9">16:9 Cinematic Landscape</option>
+                        <option value="21:9">21:9 Ultra-Wide</option>
                       </select>
                     </div>
                   </div>

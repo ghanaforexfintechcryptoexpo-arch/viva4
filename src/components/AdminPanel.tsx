@@ -37,6 +37,22 @@ export default function AdminPanel({ currentUser, products, onNavigate }: AdminP
   const videoInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
+  // --- IMAGE URL VALIDATOR STATES ---
+  const [validationInProgress, setValidationInProgress] = useState(false);
+  const [validationResults, setValidationResults] = useState<{
+    productId: string;
+    productName: string;
+    urlType: "primary" | "slide";
+    slideIndex?: number;
+    url: string;
+    status: "checking" | "ok" | "broken";
+  }[]>([]);
+  const [validationScannedCount, setValidationScannedCount] = useState(0);
+  const [validationTotalCount, setValidationTotalCount] = useState(0);
+  const [validationPassedCount, setValidationPassedCount] = useState(0);
+  const [validationFailedCount, setValidationFailedCount] = useState(0);
+  const [validationHasRun, setValidationHasRun] = useState(false);
+
   // --- FORM STATES ---
   const [formId, setFormId] = useState("");
   const [formName, setFormName] = useState("");
@@ -291,10 +307,10 @@ export default function AdminPanel({ currentUser, products, onNavigate }: AdminP
   };
 
   // --- FILL FORM FOR EDITING ---
-  const startEditProduct = (prod: Product) => {
+  const startEditProduct = (prod: Product, initialTab: FormTab = "general") => {
     setIsEditing(true);
     setEditingId(prod.id);
-    setActiveTab("general");
+    setActiveTab(initialTab);
 
     setFormId(prod.id);
     setFormName(prod.name);
@@ -473,6 +489,193 @@ export default function AdminPanel({ currentUser, products, onNavigate }: AdminP
     } catch (err: any) {
       console.error(err);
       showToast("Delete failed: " + err.message, "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // --- INTEGRATED IMAGE URL VALIDATOR SCRIPTS ---
+  const runImageValidation = async () => {
+    setValidationInProgress(true);
+    setValidationHasRun(true);
+    setValidationScannedCount(0);
+    setValidationPassedCount(0);
+    setValidationFailedCount(0);
+
+    const itemsToValidate: {
+      productId: string;
+      productName: string;
+      urlType: "primary" | "slide";
+      slideIndex?: number;
+      url: string;
+    }[] = [];
+
+    localProducts.forEach(prod => {
+      if (prod.imageUrl) {
+        itemsToValidate.push({
+          productId: prod.id,
+          productName: prod.name,
+          urlType: "primary",
+          url: prod.imageUrl
+        });
+      }
+      if (prod.imageUrls && prod.imageUrls.length > 0) {
+        prod.imageUrls.forEach((url, idx) => {
+          itemsToValidate.push({
+            productId: prod.id,
+            productName: prod.name,
+            urlType: "slide",
+            slideIndex: idx,
+            url: url
+          });
+        });
+      }
+    });
+
+    setValidationTotalCount(itemsToValidate.length);
+
+    const results = itemsToValidate.map(item => ({
+      ...item,
+      status: "checking" as "checking" | "ok" | "broken"
+    }));
+    setValidationResults(results);
+
+    // Helper to test a single URL with timeout & real load detection
+    const testImage = (url: string): Promise<boolean> => {
+      return new Promise((resolve) => {
+        if (!url || url.trim() === "") {
+          resolve(false);
+          return;
+        }
+        
+        const img = new Image();
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+        
+        // Timeout after 6 seconds to prevent slow response hanging
+        const timeout = setTimeout(() => {
+          img.src = "";
+          resolve(false);
+        }, 6000);
+        
+        img.src = url;
+      });
+    };
+
+    // Process sequentially or in fast batches to let react render progress in real time
+    for (let i = 0; i < results.length; i++) {
+      const item = results[i];
+      const isOk = await testImage(item.url);
+      
+      results[i].status = isOk ? "ok" : "broken";
+      setValidationResults([...results]);
+      setValidationScannedCount(i + 1);
+      if (isOk) {
+        setValidationPassedCount(prev => prev + 1);
+      } else {
+        setValidationFailedCount(prev => prev + 1);
+      }
+    }
+
+    setValidationInProgress(false);
+  };
+
+  const autoFixImage = async (productId: string, urlType: "primary" | "slide", slideIndex?: number) => {
+    const product = localProducts.find(p => p.id === productId);
+    if (!product) return;
+
+    const updatedProduct = { ...product };
+    const defaultPlaceholder = "/images/placeholder.png";
+
+    if (urlType === "primary") {
+      updatedProduct.imageUrl = defaultPlaceholder;
+    } else if (urlType === "slide" && typeof slideIndex === "number" && updatedProduct.imageUrls) {
+      const newUrls = [...updatedProduct.imageUrls];
+      newUrls[slideIndex] = defaultPlaceholder;
+      updatedProduct.imageUrls = newUrls;
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (isAdmin && !sandboxMode) {
+        await setDoc(doc(db, "products", productId), updatedProduct);
+        showToast(`Updated image path for "${product.name}" in Firestore.`);
+      } else {
+        setLocalProducts(prev => prev.map(p => p.id === productId ? updatedProduct : p));
+        showToast(`[Sandbox] Replaced broken link with placeholder for "${product.name}".`);
+      }
+
+      setValidationResults(prev => prev.map(item => {
+        if (item.productId === productId && item.urlType === urlType && item.slideIndex === slideIndex) {
+          return { ...item, url: defaultPlaceholder, status: "ok" };
+        }
+        return item;
+      }));
+      setValidationFailedCount(prev => Math.max(0, prev - 1));
+      setValidationPassedCount(prev => prev + 1);
+
+    } catch (err: any) {
+      console.error(err);
+      showToast("Operation failed: " + err.message, "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const autoFixAllBroken = async () => {
+    const brokenItems = validationResults.filter(r => r.status === "broken");
+    if (brokenItems.length === 0) {
+      showToast("No broken links found to fix!", "error");
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to replace all ${brokenItems.length} broken links with standard placeholders?`)) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const defaultPlaceholder = "/images/placeholder.png";
+      const productsToUpdate = new Map<string, Product>();
+
+      brokenItems.forEach(item => {
+        const prod = productsToUpdate.get(item.productId) || localProducts.find(p => p.id === item.productId);
+        if (!prod) return;
+
+        const updatedProd = { ...prod };
+        if (item.urlType === "primary") {
+          updatedProd.imageUrl = defaultPlaceholder;
+        } else if (item.urlType === "slide" && typeof item.slideIndex === "number" && updatedProd.imageUrls) {
+          const newUrls = [...updatedProd.imageUrls];
+          newUrls[item.slideIndex] = defaultPlaceholder;
+          updatedProd.imageUrls = newUrls;
+        }
+
+        productsToUpdate.set(item.productId, updatedProd);
+      });
+
+      for (const [id, updatedProd] of productsToUpdate.entries()) {
+        if (isAdmin && !sandboxMode) {
+          await setDoc(doc(db, "products", id), updatedProd);
+        } else {
+          setLocalProducts(prev => prev.map(p => p.id === id ? updatedProd : p));
+        }
+      }
+
+      showToast(`Successfully auto-fixed all ${brokenItems.length} broken links!`);
+
+      setValidationResults(prev => prev.map(item => {
+        if (item.status === "broken") {
+          return { ...item, url: defaultPlaceholder, status: "ok" };
+        }
+        return item;
+      }));
+      setValidationPassedCount(prev => prev + brokenItems.length);
+      setValidationFailedCount(0);
+
+    } catch (err: any) {
+      console.error(err);
+      showToast("Fix all failed: " + err.message, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -739,6 +942,155 @@ export default function AdminPanel({ currentUser, products, onNavigate }: AdminP
                     </div>
 
                   </div>
+
+                  {/* --- INTEGRATED IMAGE URL VALIDATOR CARD --- */}
+                  <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-xs mt-6">
+                    <div className="pb-4 border-b border-slate-100 flex items-center justify-between">
+                      <div>
+                        <h2 className="text-sm font-extrabold text-slate-900 uppercase font-mono tracking-wider flex items-center gap-1.5">
+                          <Image className="w-4 h-4 text-slate-500" /> Image URL Validator
+                        </h2>
+                        <p className="text-[10px] text-slate-400 font-mono">
+                          Scan and repair broken formulation visual assets
+                        </p>
+                      </div>
+                      
+                      {validationHasRun && validationFailedCount > 0 && (
+                        <button
+                          onClick={autoFixAllBroken}
+                          disabled={isSubmitting || validationInProgress}
+                          className="bg-rose-50 hover:bg-rose-100 text-rose-800 text-[10px] font-mono font-bold px-2.5 py-1.5 rounded-lg border border-rose-200 cursor-pointer disabled:opacity-50 transition-colors"
+                        >
+                          Auto-Fix All
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="mt-4 space-y-4">
+                      {/* SCAN ACTION BUTTON */}
+                      <button
+                        onClick={runImageValidation}
+                        disabled={validationInProgress || isSubmitting}
+                        className="w-full bg-slate-950 hover:bg-slate-900 text-white py-2.5 px-4 rounded-xl text-xs font-bold font-mono tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <RefreshCcw className={`w-4 h-4 ${validationInProgress ? "animate-spin" : ""}`} />
+                        {validationInProgress ? "Verifying Links..." : "Scan Product Images"}
+                      </button>
+
+                      {/* PROGRESS BAR */}
+                      {validationInProgress && (
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-[10px] font-mono font-bold text-slate-500">
+                            <span>Verifying image connections...</span>
+                            <span>{validationScannedCount} / {validationTotalCount}</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-emerald-500 transition-all duration-150"
+                              style={{ width: `${(validationScannedCount / (validationTotalCount || 1)) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SUMMARY DASHBOARD STATS */}
+                      {validationHasRun && !validationInProgress && (
+                        <div className="grid grid-cols-3 gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                          <div className="text-center">
+                            <span className="block text-[8px] font-mono font-bold text-slate-400 uppercase">Total Links</span>
+                            <span className="text-sm font-extrabold text-slate-700 font-mono">{validationTotalCount}</span>
+                          </div>
+                          <div className="text-center">
+                            <span className="block text-[8px] font-mono font-bold text-emerald-500 uppercase">Passed</span>
+                            <span className="text-sm font-extrabold text-emerald-600 font-mono">✓ {validationPassedCount}</span>
+                          </div>
+                          <div className="text-center">
+                            <span className="block text-[8px] font-mono font-bold text-rose-500 uppercase">Broken</span>
+                            <span className={`text-sm font-extrabold font-mono ${validationFailedCount > 0 ? "text-rose-600 animate-pulse" : "text-slate-400"}`}>
+                              ✗ {validationFailedCount}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* RESULTS BREAKDOWN CONTAINER */}
+                      {validationHasRun && (
+                        <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+                          {validationResults.length === 0 ? (
+                            <p className="text-center text-slate-400 text-[11px] font-mono py-2">No product images found in catalog.</p>
+                          ) : validationFailedCount === 0 && !validationInProgress ? (
+                            <div className="p-3.5 bg-emerald-50/50 border border-emerald-100 rounded-2xl flex items-center gap-2.5 text-emerald-800 text-xs">
+                              <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                              <div className="font-sans leading-normal">
+                                <p className="font-bold">All Links Healthy!</p>
+                                <p className="text-slate-500 text-[10px] mt-0.5">Every image link in the collection loaded successfully.</p>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {validationResults.map((item, idx) => {
+                                if (item.status !== "broken") return null;
+                                return (
+                                  <div 
+                                    key={`${item.productId}-${item.urlType}-${item.slideIndex || idx}`}
+                                    className="p-3 rounded-2xl bg-rose-50/30 border border-rose-100/60 text-xs space-y-2 hover:bg-rose-50/60 transition-colors"
+                                  >
+                                    <div className="flex justify-between items-start">
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          <span className="font-mono text-[9px] font-bold text-slate-400 uppercase truncate">
+                                            #{item.productId}
+                                          </span>
+                                          <span className="bg-rose-100 text-rose-800 text-[8px] font-mono font-bold px-1 py-0.5 rounded uppercase">
+                                            {item.urlType === "primary" ? "Primary Link" : `Slide #${(item.slideIndex ?? 0) + 1}`}
+                                          </span>
+                                        </div>
+                                        <h4 className="font-bold text-slate-900 mt-0.5 truncate">{item.productName}</h4>
+                                      </div>
+
+                                      {/* ACTION BUTTONS */}
+                                      <div className="flex items-center gap-1 flex-shrink-0">
+                                        <button
+                                          onClick={() => {
+                                            const prod = localProducts.find(p => p.id === item.productId);
+                                            if (prod) {
+                                              startEditProduct(prod, "assets");
+                                              showToast(`Opening assets tab for ${prod.name}`);
+                                            }
+                                          }}
+                                          className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+                                          title="Modify Link Manually"
+                                        >
+                                          <Edit2 className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          onClick={() => autoFixImage(item.productId, item.urlType, item.slideIndex)}
+                                          disabled={isSubmitting}
+                                          className="p-1 hover:bg-emerald-50 rounded text-emerald-600 hover:text-emerald-700 transition-colors cursor-pointer disabled:opacity-50"
+                                          title="Replace with Default Placeholder"
+                                        >
+                                          <CheckCircle className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* BROKEN URL DETAIL */}
+                                    <div className="p-2 bg-slate-950 rounded-lg text-[10px] font-mono text-slate-300 break-all select-all leading-tight border border-slate-900 flex items-center justify-between gap-1.5">
+                                      <span className="truncate pr-1">{item.url}</span>
+                                      <span className="text-rose-400 font-bold uppercase text-[8px] flex-shrink-0 bg-rose-500/10 border border-rose-500/20 px-1 py-0.5 rounded tracking-wider">
+                                        BROKEN
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                 </div>
 
                 {/* --- RIGHT HAND: DETAILED CRITICAL FORMS --- */}

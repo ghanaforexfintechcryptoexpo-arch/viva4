@@ -24,7 +24,7 @@ export default function ClinicalChatWidget({ products, currency = "USD" }: Clini
     {
       id: "welcome",
       sender: "specialist",
-      text: "Hello! I am Dr. Julian Sterling, lead formulation scientist here at ProViva Clinic. Feel free to ask me any questions about our therapeutic organic compounds, capsule dosages, or customized health plans. How can I support your vitality journey today?",
+      text: "Hello! I am the lead formulation scientist here at ProViva Clinic. Feel free to ask me any questions about our therapeutic organic compounds, capsule dosages, or customized health plans. How can I support your vitality journey today?",
       timestamp: new Date(),
     },
   ]);
@@ -171,13 +171,13 @@ export default function ClinicalChatWidget({ products, currency = "USD" }: Clini
             <div className="flex items-center gap-3">
               <div className="relative">
                 <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center border border-emerald-500/30 overflow-hidden">
-                  <span className="text-xs font-bold text-emerald-400 font-mono">JS</span>
+                  <span className="text-xs font-bold text-emerald-400 font-mono">PV</span>
                 </div>
                 <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <h4 className="text-xs font-extrabold text-slate-100">Dr. Julian Sterling</h4>
+                  <h4 className="text-xs font-extrabold text-slate-100">Clinical Formulation AI</h4>
                   <Sparkles className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400/20" />
                 </div>
                 <span className="text-[10px] text-slate-400 font-mono block leading-none mt-0.5">

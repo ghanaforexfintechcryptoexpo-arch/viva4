@@ -59,7 +59,7 @@ export default function SlidesWorkspace() {
   // Wizard Input State
   const [clientName, setClientName] = useState("");
   const [healthFocus, setHealthFocus] = useState("prostate");
-  const [practitionerName, setPractitionerName] = useState("Dr. Julian Sterling");
+  const [practitionerName, setPractitionerName] = useState("Lead Clinician");
   const [durationWeeks, setDurationWeeks] = useState("12");
   const [additionalNotes, setAdditionalNotes] = useState("");
 
