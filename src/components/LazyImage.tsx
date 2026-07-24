@@ -14,6 +14,46 @@ interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   onError?: React.ReactEventHandler<HTMLImageElement>;
 }
 
+function resolveCleanImageUrl(url: string | undefined | null, altText: string): string {
+  const combined = ((url || "") + " " + (altText || "")).toLowerCase();
+
+  // Keyword matching for high-res storefront product assets
+  if (combined.includes("proviva")) return "/images/proviva_bottle.jpg";
+  if (combined.includes("vivalax_side")) return "/images/vivalax_side.jpg";
+  if (combined.includes("vivalax_back")) return "/images/vivalax_back.jpg";
+  if (combined.includes("vivalax")) return "/images/vivalax_bottle.jpg";
+  if (combined.includes("vivadio_side")) return "/images/vivadio_side.jpg";
+  if (combined.includes("vivadio_back")) return "/images/vivadio_back.jpg";
+  if (combined.includes("vivadio")) return "/images/vivadio_bottle.jpg";
+  if (combined.includes("vivaplus_side")) return "/images/vivaplus_side.jpg";
+  if (combined.includes("vivaplus_back")) return "/images/vivaplus_back.jpg";
+  if (combined.includes("vivaplus")) return "/images/vivaplus_bottle.jpg";
+  if (combined.includes("vivanego_side")) return "/images/vivanego_side.jpg";
+  if (combined.includes("vivanego_back")) return "/images/vivanego_back.jpg";
+  if (combined.includes("vivanego")) return "/images/vivanego_bottle.jpg";
+  if (combined.includes("hepaviva_side")) return "/images/hepaviva_side.jpg";
+  if (combined.includes("hepaviva_back")) return "/images/hepaviva_back.jpg";
+  if (combined.includes("hepaviva")) return "/images/hepaviva_bottle.jpg";
+  if (combined.includes("nephroviva_side")) return "/images/nephroviva_side.jpg";
+  if (combined.includes("nephroviva_back")) return "/images/nephroviva_back.jpg";
+  if (combined.includes("nephroviva")) return "/images/nephroviva_bottle.jpg";
+
+  if (!url || url.trim() === "" || url.includes("placeholder")) {
+    return "/images/proviva_bottle.jpg";
+  }
+
+  let clean = url;
+  if (clean.includes("/images/")) {
+    clean = "/images/" + clean.split("/images/")[1];
+  } else if (clean.startsWith("images/")) {
+    clean = "/" + clean;
+  } else if (!clean.startsWith("http://") && !clean.startsWith("https://") && !clean.startsWith("/")) {
+    clean = "/" + clean;
+  }
+
+  return clean;
+}
+
 export default function LazyImage({
   src,
   alt,
@@ -27,28 +67,24 @@ export default function LazyImage({
   ...props
 }: LazyImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [imgSrc, setImgSrc] = useState(src);
+  const [imgSrc, setImgSrc] = useState(() => resolveCleanImageUrl(src, alt));
   const [hasError, setHasError] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
   // Generate responsive attributes unless explicitly overridden
-  const responsiveAttrs = srcSet ? { srcSet, sizes } : generateSrcSet(src);
+  const responsiveAttrs = srcSet ? { srcSet, sizes } : generateSrcSet(imgSrc);
 
   useEffect(() => {
-    setImgSrc(src);
+    const cleaned = resolveCleanImageUrl(src, alt);
+    setImgSrc(cleaned);
     setHasError(false);
     setIsLoaded(false);
-  }, [src]);
+  }, [src, alt]);
 
-  // Check if image is already loaded in cache when component mounts or imgSrc changes
+  // Check if image is already loaded in browser cache
   useEffect(() => {
-    if (imgRef.current && imgRef.current.complete) {
-      if (imgRef.current.naturalWidth > 0) {
-        setIsLoaded(true);
-      } else {
-        // Image failed to load or has 0 width
-        imgRef.current.dispatchEvent(new Event("error"));
-      }
+    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
+      setIsLoaded(true);
     }
   }, [imgSrc]);
 
@@ -58,7 +94,7 @@ export default function LazyImage({
       id={`lazy-image-container-${alt.replace(/\s+/g, "-").toLowerCase()}`}
     >
       {/* Premium Shimmer & Pulse Loader or Custom Skeleton Placeholder */}
-      {!isLoaded && !hasError && (
+      {!isLoaded && (
         customPlaceholder ? (
           <div className="absolute inset-0 z-10 w-full h-full">
             {customPlaceholder}
@@ -82,18 +118,15 @@ export default function LazyImage({
         onError={(e) => {
           if (!hasError) {
             setHasError(true);
-            const lowerAlt = (alt || "").toLowerCase();
-            let fallback = "/images/proviva_bottle.jpg";
-            if (lowerAlt.includes("vivalax")) fallback = "/images/vivalax_bottle.jpg";
-            else if (lowerAlt.includes("vivadio")) fallback = "/images/vivadio_bottle.jpg";
-            else if (lowerAlt.includes("vivaplus")) fallback = "/images/vivaplus_bottle.jpg";
-            else if (lowerAlt.includes("vivanego")) fallback = "/images/vivanego_bottle.jpg";
-            else if (lowerAlt.includes("hepaviva")) fallback = "/images/hepaviva_bottle.jpg";
-            else if (lowerAlt.includes("nephroviva")) fallback = "/images/nephroviva_bottle.jpg";
-            else if (lowerAlt.includes("proviva")) fallback = "/images/proviva_bottle.jpg";
-            setImgSrc(fallback);
+            const fallback = resolveCleanImageUrl("", alt);
+            if (fallback !== imgSrc) {
+              setImgSrc(fallback);
+            } else {
+              setIsLoaded(true);
+            }
+          } else {
+            setIsLoaded(true);
           }
-          setIsLoaded(true);
           if (onError) onError(e);
         }}
         className={`${className || ""} transition-all duration-300 ${

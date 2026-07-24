@@ -72,31 +72,43 @@ export default function App() {
   // Sync dynamic products list from Firestore with static fallback
   useEffect(() => {
     try {
-      const sanitizeImgUrl = (url: string | undefined | null, staticFallback: string): string => {
-        if (!url || url.startsWith("data:image/") || url.includes("placeholder") || url.trim() === "") {
-          return staticFallback;
+      const sanitizeImgUrl = (url: string | undefined | null, staticFallback: string, prodContext?: string): string => {
+        const combined = ((url || "") + " " + (prodContext || "")).toLowerCase();
+        
+        if (combined.includes("proviva")) return "/images/proviva_bottle.jpg";
+        if (combined.includes("vivalax_side")) return "/images/vivalax_side.jpg";
+        if (combined.includes("vivalax_back")) return "/images/vivalax_back.jpg";
+        if (combined.includes("vivalax")) return "/images/vivalax_bottle.jpg";
+        if (combined.includes("vivadio_side")) return "/images/vivadio_side.jpg";
+        if (combined.includes("vivadio_back")) return "/images/vivadio_back.jpg";
+        if (combined.includes("vivadio")) return "/images/vivadio_bottle.jpg";
+        if (combined.includes("vivaplus_side")) return "/images/vivaplus_side.jpg";
+        if (combined.includes("vivaplus_back")) return "/images/vivaplus_back.jpg";
+        if (combined.includes("vivaplus")) return "/images/vivaplus_bottle.jpg";
+        if (combined.includes("vivanego_side")) return "/images/vivanego_side.jpg";
+        if (combined.includes("vivanego_back")) return "/images/vivanego_back.jpg";
+        if (combined.includes("vivanego")) return "/images/vivanego_bottle.jpg";
+        if (combined.includes("hepaviva_side")) return "/images/hepaviva_side.jpg";
+        if (combined.includes("hepaviva_back")) return "/images/hepaviva_back.jpg";
+        if (combined.includes("hepaviva")) return "/images/hepaviva_bottle.jpg";
+        if (combined.includes("nephroviva_side")) return "/images/nephroviva_side.jpg";
+        if (combined.includes("nephroviva_back")) return "/images/nephroviva_back.jpg";
+        if (combined.includes("nephroviva")) return "/images/nephroviva_bottle.jpg";
+
+        if (!url || typeof url !== "string" || url.trim() === "" || url.startsWith("data:image/") || url.includes("placeholder")) {
+          return staticFallback || "/images/proviva_bottle.jpg";
         }
-        const lower = url.toLowerCase();
-        if (lower.includes("proviva_bottle") || lower.includes("proviva.jpg")) return "/images/proviva_bottle.jpg";
-        if (lower.includes("vivalax_side")) return "/images/vivalax_side.jpg";
-        if (lower.includes("vivalax_back")) return "/images/vivalax_back.jpg";
-        if (lower.includes("vivalax_bottle") || lower.includes("vivalax.jpg") || lower.includes("vivalax")) return "/images/vivalax_bottle.jpg";
-        if (lower.includes("vivadio_side")) return "/images/vivadio_side.jpg";
-        if (lower.includes("vivadio_back")) return "/images/vivadio_back.jpg";
-        if (lower.includes("vivadio_bottle") || lower.includes("vivadio.jpg") || lower.includes("vivadio")) return "/images/vivadio_bottle.jpg";
-        if (lower.includes("vivaplus_side")) return "/images/vivaplus_side.jpg";
-        if (lower.includes("vivaplus_back")) return "/images/vivaplus_back.jpg";
-        if (lower.includes("vivaplus_bottle") || lower.includes("vivaplus.jpg") || lower.includes("vivaplus")) return "/images/vivaplus_bottle.jpg";
-        if (lower.includes("vivanego_side")) return "/images/vivanego_side.jpg";
-        if (lower.includes("vivanego_back")) return "/images/vivanego_back.jpg";
-        if (lower.includes("vivanego_bottle") || lower.includes("vivanego.jpg") || lower.includes("vivanego")) return "/images/vivanego_bottle.jpg";
-        if (lower.includes("hepaviva_side")) return "/images/hepaviva_side.jpg";
-        if (lower.includes("hepaviva_back")) return "/images/hepaviva_back.jpg";
-        if (lower.includes("hepaviva_bottle") || lower.includes("hepaviva.jpg") || lower.includes("hepaviva")) return "/images/hepaviva_bottle.jpg";
-        if (lower.includes("nephroviva_side")) return "/images/nephroviva_side.jpg";
-        if (lower.includes("nephroviva_back")) return "/images/nephroviva_back.jpg";
-        if (lower.includes("nephroviva_bottle") || lower.includes("nephroviva.jpg") || lower.includes("nephroviva")) return "/images/nephroviva_bottle.jpg";
-        return url;
+
+        let clean = url;
+        if (clean.includes("/images/")) {
+          clean = "/images/" + clean.split("/images/")[1];
+        } else if (clean.startsWith("images/")) {
+          clean = "/" + clean;
+        } else if (!clean.startsWith("http://") && !clean.startsWith("https://") && !clean.startsWith("/")) {
+          clean = "/" + clean;
+        }
+
+        return clean;
       };
 
       const unsubscribe = onSnapshot(collection(db, "products"), (snapshot) => {
@@ -104,11 +116,23 @@ export default function App() {
           const loadedProducts: Product[] = [];
           snapshot.forEach((doc) => {
             const data = doc.data();
-            const staticProduct = PRODUCTS.find((p) => p.id === doc.id);
+            const targetId = (doc.id || data.id || data.name || "").toLowerCase();
+            let staticProduct = PRODUCTS.find((p) => p.id === doc.id || p.id === data.id);
+            if (!staticProduct) {
+              if (targetId.includes("proviva")) staticProduct = PRODUCTS.find(p => p.id === "proviva");
+              else if (targetId.includes("vivalax")) staticProduct = PRODUCTS.find(p => p.id === "vivalax");
+              else if (targetId.includes("vivadio")) staticProduct = PRODUCTS.find(p => p.id === "vivadio");
+              else if (targetId.includes("vivaplus")) staticProduct = PRODUCTS.find(p => p.id === "vivaplus");
+              else if (targetId.includes("vivanego")) staticProduct = PRODUCTS.find(p => p.id === "vivanego");
+              else if (targetId.includes("hepaviva")) staticProduct = PRODUCTS.find(p => p.id === "hepaviva");
+              else if (targetId.includes("nephroviva")) staticProduct = PRODUCTS.find(p => p.id === "nephroviva");
+            }
             
+            const fallbackImg = staticProduct?.imageUrl || "/images/proviva_bottle.jpg";
+
             // Resolve primary image with sanitization
-            const rawImageUrl = data.imageUrl || staticProduct?.imageUrl || "/images/placeholder.png";
-            const cleanImageUrl = sanitizeImgUrl(rawImageUrl, staticProduct?.imageUrl || "/images/placeholder.png");
+            const rawImageUrl = data.imageUrl || fallbackImg;
+            const cleanImageUrl = sanitizeImgUrl(rawImageUrl, fallbackImg, targetId);
 
             // Resolve and sanitize imageUrls array
             let rawImageUrls: string[] = [];
@@ -120,7 +144,7 @@ export default function App() {
               rawImageUrls = [cleanImageUrl];
             }
 
-            const cleanImageUrls = rawImageUrls.map(url => sanitizeImgUrl(url, cleanImageUrl));
+            const cleanImageUrls = rawImageUrls.map(url => sanitizeImgUrl(url, cleanImageUrl, targetId));
 
             // Deep merge static default properties with Firestore document data
             const mergedProduct: Product = {
