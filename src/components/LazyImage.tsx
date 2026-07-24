@@ -9,49 +9,61 @@ interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   referrerPolicy?: React.HTMLAttributeReferrerPolicy;
   srcSet?: string;
   sizes?: string;
+  loading?: "eager" | "lazy";
   customPlaceholder?: React.ReactNode;
   onLoad?: React.ReactEventHandler<HTMLImageElement>;
   onError?: React.ReactEventHandler<HTMLImageElement>;
 }
 
-function resolveCleanImageUrl(url: string | undefined | null, altText: string): string {
+export function resolveCleanImageUrl(url: string | undefined | null, altText: string): string {
   const combined = ((url || "") + " " + (altText || "")).toLowerCase();
 
-  // Keyword matching for high-res storefront product assets
-  if (combined.includes("proviva")) return "/images/proviva_bottle.jpg";
+  // Specific product keywords MUST be checked BEFORE generic "proviva" brand name
   if (combined.includes("vivalax_side")) return "/images/vivalax_side.jpg";
   if (combined.includes("vivalax_back")) return "/images/vivalax_back.jpg";
   if (combined.includes("vivalax")) return "/images/vivalax_bottle.jpg";
+
   if (combined.includes("vivadio_side")) return "/images/vivadio_side.jpg";
   if (combined.includes("vivadio_back")) return "/images/vivadio_back.jpg";
   if (combined.includes("vivadio")) return "/images/vivadio_bottle.jpg";
+
   if (combined.includes("vivaplus_side")) return "/images/vivaplus_side.jpg";
   if (combined.includes("vivaplus_back")) return "/images/vivaplus_back.jpg";
   if (combined.includes("vivaplus")) return "/images/vivaplus_bottle.jpg";
+
   if (combined.includes("vivanego_side")) return "/images/vivanego_side.jpg";
   if (combined.includes("vivanego_back")) return "/images/vivanego_back.jpg";
   if (combined.includes("vivanego")) return "/images/vivanego_bottle.jpg";
+
   if (combined.includes("hepaviva_side")) return "/images/hepaviva_side.jpg";
   if (combined.includes("hepaviva_back")) return "/images/hepaviva_back.jpg";
   if (combined.includes("hepaviva")) return "/images/hepaviva_bottle.jpg";
+
   if (combined.includes("nephroviva_side")) return "/images/nephroviva_side.jpg";
   if (combined.includes("nephroviva_back")) return "/images/nephroviva_back.jpg";
   if (combined.includes("nephroviva")) return "/images/nephroviva_bottle.jpg";
 
-  if (!url || url.trim() === "" || url.includes("placeholder")) {
-    return "/images/proviva_bottle.jpg";
+  if (combined.includes("proviva_hero")) return "/images/proviva_hero_banner.jpg";
+  if (combined.includes("proviva")) return "/images/proviva_bottle.jpg";
+
+  if (url && typeof url === "string" && url.trim() !== "" && !url.includes("placeholder") && !url.startsWith("data:image/")) {
+    let clean = url.trim();
+    if (clean.includes("/images/")) {
+      return "/images/" + clean.split("/images/")[1];
+    }
+    if (clean.startsWith("images/")) {
+      return "/" + clean;
+    }
+    if (clean.startsWith("/")) {
+      return clean;
+    }
+    if (clean.startsWith("http://") || clean.startsWith("https://")) {
+      return clean;
+    }
+    return "/" + clean;
   }
 
-  let clean = url;
-  if (clean.includes("/images/")) {
-    clean = "/images/" + clean.split("/images/")[1];
-  } else if (clean.startsWith("images/")) {
-    clean = "/" + clean;
-  } else if (!clean.startsWith("http://") && !clean.startsWith("https://") && !clean.startsWith("/")) {
-    clean = "/" + clean;
-  }
-
-  return clean;
+  return "/images/proviva_bottle.jpg";
 }
 
 export default function LazyImage({
@@ -64,6 +76,7 @@ export default function LazyImage({
   onLoad,
   onError,
   customPlaceholder,
+  loading,
   ...props
 }: LazyImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -83,8 +96,10 @@ export default function LazyImage({
 
   // Check if image is already loaded in browser cache
   useEffect(() => {
-    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
-      setIsLoaded(true);
+    if (imgRef.current && imgRef.current.complete) {
+      if (imgRef.current.naturalWidth > 0) {
+        setIsLoaded(true);
+      }
     }
   }, [imgSrc]);
 
@@ -93,15 +108,15 @@ export default function LazyImage({
       className={`relative flex items-center justify-center overflow-hidden w-full ${placeholderHeight}`}
       id={`lazy-image-container-${alt.replace(/\s+/g, "-").toLowerCase()}`}
     >
-      {/* Premium Shimmer & Pulse Loader or Custom Skeleton Placeholder */}
-      {!isLoaded && (
+      {/* Skeleton Pulse Loader */}
+      {!isLoaded && !hasError && (
         customPlaceholder ? (
           <div className="absolute inset-0 z-10 w-full h-full">
             {customPlaceholder}
           </div>
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-50 via-slate-100 to-slate-50 animate-pulse flex items-center justify-center rounded-2xl z-10">
-            <div className="w-8 h-8 border-3 border-slate-200 border-t-emerald-500 rounded-full animate-spin" />
+          <div className="absolute inset-0 bg-slate-100 animate-pulse flex items-center justify-center rounded-2xl z-0">
+            <div className="w-8 h-8 border-2 border-slate-300 border-t-emerald-500 rounded-full animate-spin" />
           </div>
         )
       )}
@@ -110,7 +125,7 @@ export default function LazyImage({
         ref={imgRef}
         src={imgSrc}
         alt={alt}
-        loading="lazy"
+        loading={loading || "eager"}
         onLoad={(e) => {
           setIsLoaded(true);
           if (onLoad) onLoad(e);
@@ -122,6 +137,7 @@ export default function LazyImage({
             if (fallback !== imgSrc) {
               setImgSrc(fallback);
             } else {
+              setImgSrc("/images/proviva_bottle.jpg");
               setIsLoaded(true);
             }
           } else {
@@ -129,8 +145,8 @@ export default function LazyImage({
           }
           if (onError) onError(e);
         }}
-        className={`${className || ""} transition-all duration-300 ${
-          isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95"
+        className={`${className || ""} transition-opacity duration-300 relative z-10 ${
+          isLoaded ? "opacity-100" : "opacity-90"
         }`}
         {...responsiveAttrs}
         {...props}

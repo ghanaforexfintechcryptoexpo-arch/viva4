@@ -75,25 +75,32 @@ export default function App() {
       const sanitizeImgUrl = (url: string | undefined | null, staticFallback: string, prodContext?: string): string => {
         const combined = ((url || "") + " " + (prodContext || "")).toLowerCase();
         
-        if (combined.includes("proviva")) return "/images/proviva_bottle.jpg";
         if (combined.includes("vivalax_side")) return "/images/vivalax_side.jpg";
         if (combined.includes("vivalax_back")) return "/images/vivalax_back.jpg";
         if (combined.includes("vivalax")) return "/images/vivalax_bottle.jpg";
+
         if (combined.includes("vivadio_side")) return "/images/vivadio_side.jpg";
         if (combined.includes("vivadio_back")) return "/images/vivadio_back.jpg";
         if (combined.includes("vivadio")) return "/images/vivadio_bottle.jpg";
+
         if (combined.includes("vivaplus_side")) return "/images/vivaplus_side.jpg";
         if (combined.includes("vivaplus_back")) return "/images/vivaplus_back.jpg";
         if (combined.includes("vivaplus")) return "/images/vivaplus_bottle.jpg";
+
         if (combined.includes("vivanego_side")) return "/images/vivanego_side.jpg";
         if (combined.includes("vivanego_back")) return "/images/vivanego_back.jpg";
         if (combined.includes("vivanego")) return "/images/vivanego_bottle.jpg";
+
         if (combined.includes("hepaviva_side")) return "/images/hepaviva_side.jpg";
         if (combined.includes("hepaviva_back")) return "/images/hepaviva_back.jpg";
         if (combined.includes("hepaviva")) return "/images/hepaviva_bottle.jpg";
+
         if (combined.includes("nephroviva_side")) return "/images/nephroviva_side.jpg";
         if (combined.includes("nephroviva_back")) return "/images/nephroviva_back.jpg";
         if (combined.includes("nephroviva")) return "/images/nephroviva_bottle.jpg";
+
+        if (combined.includes("proviva_hero")) return "/images/proviva_hero_banner.jpg";
+        if (combined.includes("proviva")) return "/images/proviva_bottle.jpg";
 
         if (!url || typeof url !== "string" || url.trim() === "" || url.startsWith("data:image/") || url.includes("placeholder")) {
           return staticFallback || "/images/proviva_bottle.jpg";
@@ -116,7 +123,7 @@ export default function App() {
           const loadedProducts: Product[] = [];
           snapshot.forEach((doc) => {
             const data = doc.data();
-            const targetId = (doc.id || data.id || data.name || "").toLowerCase();
+            const targetId = `${doc.id} ${data.id || ""} ${data.name || ""}`.toLowerCase();
             let staticProduct = PRODUCTS.find((p) => p.id === doc.id || p.id === data.id);
             if (!staticProduct) {
               if (targetId.includes("proviva")) staticProduct = PRODUCTS.find(p => p.id === "proviva");
