@@ -1,5 +1,5 @@
 import React, { useState, useDeferredValue } from "react";
-import { Beaker, ShieldAlert, Sparkles, Star, ChevronRight, ChevronLeft, Activity, Award, Shield, CheckCircle, ArrowDown, X, Plus, Minus, Eye, Zap, Share2, Copy, Check, Loader2, Sun, Sunrise, Sunset, Moon, Coffee, ShoppingBag, Users, MapPin, TrendingUp, ArrowUpDown } from "lucide-react";
+import { Beaker, ShieldAlert, Sparkles, Star, ChevronRight, ChevronLeft, Activity, Award, Shield, CheckCircle, ArrowDown, X, Plus, Minus, Eye, Zap, Share2, Copy, Check, Loader2, Sun, Sunrise, Sunset, Moon, Coffee, ShoppingBag, Users, MapPin, TrendingUp, ArrowUpDown, ShieldCheck, Leaf } from "lucide-react";
 import { PRODUCTS } from "../data";
 import { Product, ProductSize } from "../types";
 import { CurrencyType, formatPrice, generateSrcSet } from "../utils";
@@ -778,6 +778,22 @@ export default function Homepage({
                 <div>
                   <span className="text-sm font-bold text-white block">Dr. Sarah Vance, PhD</span>
                   <span className="text-xs text-slate-400 block">Lead Phytochemical Quality Analyst</span>
+                </div>
+              </div>
+
+              {/* Icon Badges Row */}
+              <div className="mt-6 flex flex-wrap items-center gap-3 pt-4 border-t border-slate-800/80">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 text-xs font-medium shadow-sm hover:border-emerald-500/40 transition-colors">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Third-party Verified</span>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 text-xs font-medium shadow-sm hover:border-emerald-500/40 transition-colors">
+                  <Leaf className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Sustainable Sourced</span>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 text-xs font-medium shadow-sm hover:border-emerald-500/40 transition-colors">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>No Additives</span>
                 </div>
               </div>
             </div>
