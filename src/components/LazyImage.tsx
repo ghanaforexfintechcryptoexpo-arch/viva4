@@ -43,7 +43,12 @@ export default function LazyImage({
   // Check if image is already loaded in cache when component mounts or imgSrc changes
   useEffect(() => {
     if (imgRef.current && imgRef.current.complete) {
-      setIsLoaded(true);
+      if (imgRef.current.naturalWidth > 0) {
+        setIsLoaded(true);
+      } else {
+        // Image failed to load or has 0 width
+        imgRef.current.dispatchEvent(new Event("error"));
+      }
     }
   }, [imgSrc]);
 
@@ -77,7 +82,16 @@ export default function LazyImage({
         onError={(e) => {
           if (!hasError) {
             setHasError(true);
-            setImgSrc("/images/placeholder.png");
+            const lowerAlt = (alt || "").toLowerCase();
+            let fallback = "/images/proviva_bottle.jpg";
+            if (lowerAlt.includes("vivalax")) fallback = "/images/vivalax_bottle.jpg";
+            else if (lowerAlt.includes("vivadio")) fallback = "/images/vivadio_bottle.jpg";
+            else if (lowerAlt.includes("vivaplus")) fallback = "/images/vivaplus_bottle.jpg";
+            else if (lowerAlt.includes("vivanego")) fallback = "/images/vivanego_bottle.jpg";
+            else if (lowerAlt.includes("hepaviva")) fallback = "/images/hepaviva_bottle.jpg";
+            else if (lowerAlt.includes("nephroviva")) fallback = "/images/nephroviva_bottle.jpg";
+            else if (lowerAlt.includes("proviva")) fallback = "/images/proviva_bottle.jpg";
+            setImgSrc(fallback);
           }
           setIsLoaded(true);
           if (onError) onError(e);

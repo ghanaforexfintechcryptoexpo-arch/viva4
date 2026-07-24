@@ -73,26 +73,29 @@ export default function App() {
   useEffect(() => {
     try {
       const sanitizeImgUrl = (url: string | undefined | null, staticFallback: string): string => {
-        if (!url) return staticFallback;
-        if (url.includes("proviva_bottle")) return "/images/proviva_bottle.jpg";
-        if (url.includes("vivalax_bottle")) return "/images/vivalax_bottle.jpg";
-        if (url.includes("vivadio_bottle")) return "/images/vivadio_bottle.jpg";
-        if (url.includes("vivaplus_bottle")) return "/images/vivaplus_bottle.jpg";
-        if (url.includes("vivanego_bottle")) return "/images/vivanego_bottle.jpg";
-        if (url.includes("hepaviva_bottle")) return "/images/hepaviva_bottle.jpg";
-        if (url.includes("nephroviva_bottle")) return "/images/nephroviva_bottle.jpg";
-        if (url.includes("vivalax_side")) return "/images/vivalax_side_view_1783968653467.jpg";
-        if (url.includes("vivalax_back")) return "/images/vivalax_back_view_1783968671769.jpg";
-        if (url.includes("vivadio_side")) return "/images/vivadio_side_view_1783967894190.jpg";
-        if (url.includes("vivadio_back")) return "/images/vivadio_back_view_1783967911854.jpg";
-        if (url.includes("vivaplus_side")) return "/images/vivaplus_side_view_1783969009354.jpg";
-        if (url.includes("vivaplus_back")) return "/images/vivaplus_back_view_1783969023710.jpg";
-        if (url.includes("vivanego_side")) return "/images/vivanego_side_view_1783969308696.jpg";
-        if (url.includes("vivanego_back")) return "/images/vivanego_back_view_1783969324509.jpg";
-        if (url.includes("hepaviva_side")) return "/images/hepaviva_side_view_1783968179065.jpg";
-        if (url.includes("hepaviva_back")) return "/images/hepaviva_back_view_1783968194631.jpg";
-        if (url.includes("nephroviva_side")) return "/images/nephroviva_side_1784025704913.jpg";
-        if (url.includes("nephroviva_back")) return "/images/nephroviva_back_1784025720411.jpg";
+        if (!url || url.startsWith("data:image/") || url.includes("placeholder") || url.trim() === "") {
+          return staticFallback;
+        }
+        const lower = url.toLowerCase();
+        if (lower.includes("proviva_bottle") || lower.includes("proviva.jpg")) return "/images/proviva_bottle.jpg";
+        if (lower.includes("vivalax_side")) return "/images/vivalax_side.jpg";
+        if (lower.includes("vivalax_back")) return "/images/vivalax_back.jpg";
+        if (lower.includes("vivalax_bottle") || lower.includes("vivalax.jpg") || lower.includes("vivalax")) return "/images/vivalax_bottle.jpg";
+        if (lower.includes("vivadio_side")) return "/images/vivadio_side.jpg";
+        if (lower.includes("vivadio_back")) return "/images/vivadio_back.jpg";
+        if (lower.includes("vivadio_bottle") || lower.includes("vivadio.jpg") || lower.includes("vivadio")) return "/images/vivadio_bottle.jpg";
+        if (lower.includes("vivaplus_side")) return "/images/vivaplus_side.jpg";
+        if (lower.includes("vivaplus_back")) return "/images/vivaplus_back.jpg";
+        if (lower.includes("vivaplus_bottle") || lower.includes("vivaplus.jpg") || lower.includes("vivaplus")) return "/images/vivaplus_bottle.jpg";
+        if (lower.includes("vivanego_side")) return "/images/vivanego_side.jpg";
+        if (lower.includes("vivanego_back")) return "/images/vivanego_back.jpg";
+        if (lower.includes("vivanego_bottle") || lower.includes("vivanego.jpg") || lower.includes("vivanego")) return "/images/vivanego_bottle.jpg";
+        if (lower.includes("hepaviva_side")) return "/images/hepaviva_side.jpg";
+        if (lower.includes("hepaviva_back")) return "/images/hepaviva_back.jpg";
+        if (lower.includes("hepaviva_bottle") || lower.includes("hepaviva.jpg") || lower.includes("hepaviva")) return "/images/hepaviva_bottle.jpg";
+        if (lower.includes("nephroviva_side")) return "/images/nephroviva_side.jpg";
+        if (lower.includes("nephroviva_back")) return "/images/nephroviva_back.jpg";
+        if (lower.includes("nephroviva_bottle") || lower.includes("nephroviva.jpg") || lower.includes("nephroviva")) return "/images/nephroviva_bottle.jpg";
         return url;
       };
 
