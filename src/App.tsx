@@ -23,6 +23,7 @@ import { auth, db, handleFirestoreError, OperationType } from "./lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, onSnapshot } from "firebase/firestore";
 import { CurrencyType } from "./utils";
+import { resolveCleanImageUrl } from "./components/LazyImage";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -30,7 +31,7 @@ export default function App() {
   const [productRatings, setProductRatings] = useState<Record<string, { rating: number; reviewsCount: number }>>({});
   const [currentView, setCurrentView] = useState<string>("homepage");
   const [selectedProductId, setSelectedProductId] = useState<string>("proviva");
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
   const [isLoadingProducts, setIsLoadingProducts] = useState<boolean>(true);
   const [loadingMessage, setLoadingMessage] = useState<string>("Establishing secure database connection...");
 
@@ -71,54 +72,20 @@ export default function App() {
 
   // Sync dynamic products list from Firestore with static fallback
   useEffect(() => {
+    let isMounted = true;
+    const fallbackTimer = setTimeout(() => {
+      if (isMounted) {
+        setIsLoadingProducts(false);
+      }
+    }, 1000);
+
     try {
       const sanitizeImgUrl = (url: string | undefined | null, staticFallback: string, prodContext?: string): string => {
-        const combined = ((url || "") + " " + (prodContext || "")).toLowerCase();
-        
-        if (combined.includes("vivalax_side")) return "/images/vivalax_side.jpg";
-        if (combined.includes("vivalax_back")) return "/images/vivalax_back.jpg";
-        if (combined.includes("vivalax")) return "/images/vivalax_bottle.jpg";
-
-        if (combined.includes("vivadio_side")) return "/images/vivadio_side.jpg";
-        if (combined.includes("vivadio_back")) return "/images/vivadio_back.jpg";
-        if (combined.includes("vivadio")) return "/images/vivadio_bottle.jpg";
-
-        if (combined.includes("vivaplus_side")) return "/images/vivaplus_side.jpg";
-        if (combined.includes("vivaplus_back")) return "/images/vivaplus_back.jpg";
-        if (combined.includes("vivaplus")) return "/images/vivaplus_bottle.jpg";
-
-        if (combined.includes("vivanego_side")) return "/images/vivanego_side.jpg";
-        if (combined.includes("vivanego_back")) return "/images/vivanego_back.jpg";
-        if (combined.includes("vivanego")) return "/images/vivanego_bottle.jpg";
-
-        if (combined.includes("hepaviva_side")) return "/images/hepaviva_side.jpg";
-        if (combined.includes("hepaviva_back")) return "/images/hepaviva_back.jpg";
-        if (combined.includes("hepaviva")) return "/images/hepaviva_bottle.jpg";
-
-        if (combined.includes("nephroviva_side")) return "/images/nephroviva_side.jpg";
-        if (combined.includes("nephroviva_back")) return "/images/nephroviva_back.jpg";
-        if (combined.includes("nephroviva")) return "/images/nephroviva_bottle.jpg";
-
-        if (combined.includes("proviva_hero")) return "/images/proviva_hero_banner.jpg";
-        if (combined.includes("proviva")) return "/images/proviva_bottle.jpg";
-
-        if (!url || typeof url !== "string" || url.trim() === "" || url.startsWith("data:image/") || url.includes("placeholder")) {
-          return staticFallback || "/images/proviva_bottle.jpg";
-        }
-
-        let clean = url;
-        if (clean.includes("/images/")) {
-          clean = "/images/" + clean.split("/images/")[1];
-        } else if (clean.startsWith("images/")) {
-          clean = "/" + clean;
-        } else if (!clean.startsWith("http://") && !clean.startsWith("https://") && !clean.startsWith("/")) {
-          clean = "/" + clean;
-        }
-
-        return clean;
+        return resolveCleanImageUrl(url, prodContext) || staticFallback || "/images/proviva_bottle.jpg";
       };
 
       const unsubscribe = onSnapshot(collection(db, "products"), (snapshot) => {
+        clearTimeout(fallbackTimer);
         if (!snapshot.empty) {
           const loadedProducts: Product[] = [];
           snapshot.forEach((doc) => {
@@ -178,22 +145,31 @@ export default function App() {
             } as Product;
             loadedProducts.push(mergedProduct);
           });
-          setProducts(loadedProducts);
+          if (isMounted) setProducts(loadedProducts);
         } else {
-          setProducts(PRODUCTS);
+          if (isMounted) setProducts(PRODUCTS);
         }
-        setIsLoadingProducts(false);
+        if (isMounted) setIsLoadingProducts(false);
       }, (err) => {
-        console.error("Error listening to dynamic products: ", err);
+        console.warn("Firestore dynamic products subscription notice:", err?.message || err);
+        clearTimeout(fallbackTimer);
+        if (isMounted) {
+          setProducts(PRODUCTS);
+          setIsLoadingProducts(false);
+        }
+      });
+      return () => {
+        isMounted = false;
+        clearTimeout(fallbackTimer);
+        unsubscribe();
+      };
+    } catch (e) {
+      console.warn("Firestore products stream creation failed:", e);
+      clearTimeout(fallbackTimer);
+      if (isMounted) {
         setProducts(PRODUCTS);
         setIsLoadingProducts(false);
-        handleFirestoreError(err, OperationType.LIST, "products");
-      });
-      return () => unsubscribe();
-    } catch (e) {
-      console.error("Firestore products stream creation failed: ", e);
-      setProducts(PRODUCTS);
-      setIsLoadingProducts(false);
+      }
     }
   }, []);
 

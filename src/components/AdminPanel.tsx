@@ -13,6 +13,7 @@ import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { Product, ProductSize } from "../types";
 import { PRODUCTS } from "../data";
 import { formatPrice, generateSrcSet } from "../utils";
+import { resolveCleanImageUrl } from "./LazyImage";
 import { motion, AnimatePresence } from "motion/react";
 
 // Import modular dashboard tab components
@@ -162,6 +163,8 @@ export default function AdminPanel({ currentUser, products, onNavigate }: AdminP
           loadedOrders.push({ id: doc.id, ...doc.data() });
         });
         setOrders(loadedOrders);
+      }, (err) => {
+        console.warn("Orders subscription notice:", err?.message || err);
       });
       return () => unsubscribe();
     } catch (e) {
@@ -178,6 +181,8 @@ export default function AdminPanel({ currentUser, products, onNavigate }: AdminP
           loadedCols.push({ id: doc.id, ...doc.data() } as CollectionType);
         });
         setCollections(loadedCols);
+      }, (err) => {
+        console.warn("Collections subscription notice:", err?.message || err);
       });
       return () => unsubscribe();
     } catch (e) {
@@ -194,6 +199,8 @@ export default function AdminPanel({ currentUser, products, onNavigate }: AdminP
           loadedCust.push({ email: doc.id, ...doc.data() } as CustomerType);
         });
         setCustomers(loadedCust);
+      }, (err) => {
+        console.warn("Customers subscription notice:", err?.message || err);
       });
       return () => unsubscribe();
     } catch (e) {
@@ -208,6 +215,8 @@ export default function AdminPanel({ currentUser, products, onNavigate }: AdminP
         if (docSnap.exists()) {
           setStoreSettings(docSnap.data() as StoreSettingsType);
         }
+      }, (err) => {
+        console.warn("Store settings subscription notice:", err?.message || err);
       });
       return () => unsubscribe();
     } catch (e) {
@@ -780,16 +789,16 @@ export default function AdminPanel({ currentUser, products, onNavigate }: AdminP
   };
 
   const autoFixImage = async (prodId: string, urlType: "primary" | "slide", slideIdx?: number) => {
-    const defaultPlaceholder = "/images/placeholder.png";
     const prod = localProducts.find(p => p.id === prodId);
     if (!prod) return;
 
+    const restoredAsset = resolveCleanImageUrl(prod.imageUrl, prod.name) || "/images/proviva_bottle.jpg";
     let updatedProd = { ...prod };
     if (urlType === "primary") {
-      updatedProd.imageUrl = defaultPlaceholder;
+      updatedProd.imageUrl = restoredAsset;
     } else if (urlType === "slide" && slideIdx !== undefined && updatedProd.imageUrls) {
       const copy = [...updatedProd.imageUrls];
-      copy[slideIdx] = defaultPlaceholder;
+      copy[slideIdx] = restoredAsset;
       updatedProd.imageUrls = copy;
     }
 
@@ -799,7 +808,7 @@ export default function AdminPanel({ currentUser, products, onNavigate }: AdminP
       } else {
         setLocalProducts(prev => prev.map(p => p.id === prodId ? updatedProd : p));
       }
-      showToast("Link repaired with fallback asset!");
+      showToast("Link repaired with valid product asset!");
       runImageValidation();
     } catch (e: any) {
       showToast("Auto-fix failed: " + e.message, "error");
@@ -813,12 +822,13 @@ export default function AdminPanel({ currentUser, products, onNavigate }: AdminP
       for (const item of brokenList) {
         const prod = localProducts.find(p => p.id === item.productId);
         if (!prod) continue;
+        const restoredAsset = resolveCleanImageUrl(prod.imageUrl, prod.name) || "/images/proviva_bottle.jpg";
         let updatedProd = { ...prod };
         if (item.urlType === "primary") {
-          updatedProd.imageUrl = "/images/placeholder.png";
+          updatedProd.imageUrl = restoredAsset;
         } else if (item.urlType === "slide" && item.slideIndex !== undefined && updatedProd.imageUrls) {
           const copy = [...updatedProd.imageUrls];
-          copy[item.slideIndex] = "/images/placeholder.png";
+          copy[item.slideIndex] = restoredAsset;
           updatedProd.imageUrls = copy;
         }
         if (isAdmin && !sandboxMode) {

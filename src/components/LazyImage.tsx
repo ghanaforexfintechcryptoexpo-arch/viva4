@@ -15,10 +15,47 @@ interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   onError?: React.ReactEventHandler<HTMLImageElement>;
 }
 
-export function resolveCleanImageUrl(url: string | undefined | null, altText: string): string {
+export function resolveCleanImageUrl(url: string | undefined | null, altText?: string): string {
+  if (url && typeof url === "string") {
+    let clean = url.trim();
+    if (clean !== "" && !clean.includes("placeholder") && !clean.startsWith("data:image/")) {
+      // 1. If it contains /images/, convert to clean relative path
+      if (clean.includes("/images/")) {
+        return "/images/" + clean.split("/images/")[1];
+      }
+      // 2. If it starts with images/, add leading slash
+      if (clean.startsWith("images/")) {
+        return "/" + clean;
+      }
+      // 3. If it contains localhost or Cloud Run/Vercel host domain, extract pathname
+      if (clean.includes("localhost:") || clean.includes(".run.app") || clean.includes(".vercel.app")) {
+        try {
+          const parsed = new URL(clean);
+          if (parsed.pathname && parsed.pathname.length > 1) {
+            return parsed.pathname;
+          }
+        } catch {
+          // ignore parsing error
+        }
+      }
+      // 4. Relative paths starting with /
+      if (clean.startsWith("/")) {
+        return clean;
+      }
+      // 5. Valid external HTTP/HTTPS or Blob URLs (e.g. Unsplash, Firebase Storage)
+      if (clean.startsWith("http://") || clean.startsWith("https://") || clean.startsWith("blob:")) {
+        return clean;
+      }
+      // 6. Filename ending with standard image extensions
+      if (/\.(jpg|jpeg|png|webp|svg|gif|avif)$/i.test(clean)) {
+        return "/images/" + clean;
+      }
+    }
+  }
+
+  // Keyword fallback matching when URL is missing, empty, or placeholder
   const combined = ((url || "") + " " + (altText || "")).toLowerCase();
 
-  // Specific product keywords MUST be checked BEFORE generic "proviva" brand name
   if (combined.includes("vivalax_side")) return "/images/vivalax_side.jpg";
   if (combined.includes("vivalax_back")) return "/images/vivalax_back.jpg";
   if (combined.includes("vivalax")) return "/images/vivalax_bottle.jpg";
@@ -45,23 +82,6 @@ export function resolveCleanImageUrl(url: string | undefined | null, altText: st
 
   if (combined.includes("proviva_hero")) return "/images/proviva_hero_banner.jpg";
   if (combined.includes("proviva")) return "/images/proviva_bottle.jpg";
-
-  if (url && typeof url === "string" && url.trim() !== "" && !url.includes("placeholder") && !url.startsWith("data:image/")) {
-    let clean = url.trim();
-    if (clean.includes("/images/")) {
-      return "/images/" + clean.split("/images/")[1];
-    }
-    if (clean.startsWith("images/")) {
-      return "/" + clean;
-    }
-    if (clean.startsWith("/")) {
-      return clean;
-    }
-    if (clean.startsWith("http://") || clean.startsWith("https://")) {
-      return clean;
-    }
-    return "/" + clean;
-  }
 
   return "/images/proviva_bottle.jpg";
 }
