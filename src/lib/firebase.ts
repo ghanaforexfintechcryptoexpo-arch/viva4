@@ -1,14 +1,34 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getAnalytics, isSupported } from "firebase/analytics";
 import firebaseConfig from "../../firebase-applet-config.json";
 
+// Merge env vars if provided (e.g. Vercel environment variables)
+const mergedFirebaseConfig = {
+  ...firebaseConfig,
+  apiKey: (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_FIREBASE_API_KEY) || firebaseConfig.apiKey,
+  projectId: (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_FIREBASE_PROJECT_ID) || firebaseConfig.projectId,
+};
+
 // Initialize Firebase App
-const app = initializeApp(firebaseConfig);
+const app = initializeApp(mergedFirebaseConfig);
+
+// Initialize Analytics safely in supported environments
+export let analytics: ReturnType<typeof getAnalytics> | null = null;
+if (typeof window !== "undefined") {
+  isSupported().then((supported) => {
+    if (supported) {
+      analytics = getAnalytics(app);
+    }
+  }).catch(() => {
+    // Ignore analytics init error in unsupported or blocked contexts
+  });
+}
 
 // Initialize Services
-export const db = (firebaseConfig as any).firestoreDatabaseId
-  ? getFirestore(app, (firebaseConfig as any).firestoreDatabaseId)
+export const db = (mergedFirebaseConfig as any).firestoreDatabaseId
+  ? getFirestore(app, (mergedFirebaseConfig as any).firestoreDatabaseId)
   : getFirestore(app);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();

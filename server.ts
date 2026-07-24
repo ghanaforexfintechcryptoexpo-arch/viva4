@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, GenerateVideosOperation, ThinkingLevel } from "@google/genai";
 import dotenv from "dotenv";
+import { PRODUCTS } from "./src/data";
 
 dotenv.config();
 
@@ -33,6 +34,36 @@ function getAiClient(): GoogleGenAI {
   }
   return aiClient;
 }
+
+// ==========================================
+// STOREFRONT PRODUCT API ENDPOINTS
+// ==========================================
+
+app.get("/api/products", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.json(PRODUCTS);
+});
+
+app.get("/api/storefront/products", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.json({ success: true, count: PRODUCTS.length, products: PRODUCTS });
+});
+
+app.get("/api/featured", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  const featured = PRODUCTS.filter((p) => p.rating >= 4.8);
+  res.json(featured);
+});
+
+app.get("/api/categories", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  const categories = Array.from(new Set(PRODUCTS.map((p) => p.goal)));
+  res.json(categories);
+});
+
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok" });
+});
 
 // ==========================================
 // API ROUTES FOR GEMINI INTELLIGENCE & CREATIVE TOOLS
@@ -346,9 +377,13 @@ async function setupApp() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[Full-Stack Server] running on http://localhost:${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`[Full-Stack Server] running on http://localhost:${PORT}`);
+    });
+  }
 }
 
 setupApp();
+
+export default app;
