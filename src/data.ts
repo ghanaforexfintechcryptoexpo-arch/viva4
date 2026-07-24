@@ -13,8 +13,9 @@ export const PRODUCTS: Product[] = [
     colorTheme: "purple",
     colorGradStart: "#6B21A8", // Rich Purple
     colorGradEnd: "#3B0764",
-    imageUrl: "/images/proviva.jpg",
+    imageUrl: "/images/proviva_bottle.jpg",
     imageUrls: [
+      "/images/proviva_bottle.jpg",
       "/images/proviva.jpg"
     ],
     sizes: [
@@ -61,11 +62,12 @@ export const PRODUCTS: Product[] = [
     colorTheme: "teal",
     colorGradStart: "#14B8A6", // Teal
     colorGradEnd: "#0F766E",
-    imageUrl: "/images/vivalax.jpg",
+    imageUrl: "/images/vivalax_bottle.jpg",
     imageUrls: [
+      "/images/vivalax_bottle.jpg",
       "/images/vivalax.jpg",
-      "/images/vivalax_side.jpg",
-      "/images/vivalax_back.jpg"
+      "/images/vivalax_side_view_1783968653467.jpg",
+      "/images/vivalax_back_view_1783968671769.jpg"
     ],
     sizes: [
       { name: "90 Tablets (Standard)", count: 90, priceModifier: 1.0 },
@@ -102,11 +104,12 @@ export const PRODUCTS: Product[] = [
     colorTheme: "sky",
     colorGradStart: "#0EA5E9", // Sky Blue
     colorGradEnd: "#0369A1",
-    imageUrl: "/images/vivadio.jpg",
+    imageUrl: "/images/vivadio_bottle.jpg",
     imageUrls: [
+      "/images/vivadio_bottle.jpg",
       "/images/vivadio.jpg",
-      "/images/vivadio_side.jpg",
-      "/images/vivadio_back.jpg"
+      "/images/vivadio_side_view_1783967894190.jpg",
+      "/images/vivadio_back_view_1783967911854.jpg"
     ],
     sizes: [
       { name: "60 Tablets (Standard)", count: 60, priceModifier: 1.0 },
@@ -143,11 +146,12 @@ export const PRODUCTS: Product[] = [
     colorTheme: "green",
     colorGradStart: "#22C55E", // Fresh Green
     colorGradEnd: "#15803D",
-    imageUrl: "/images/vivaplus.jpg",
+    imageUrl: "/images/vivaplus_bottle.jpg",
     imageUrls: [
+      "/images/vivaplus_bottle.jpg",
       "/images/vivaplus.jpg",
-      "/images/vivaplus_side.jpg",
-      "/images/vivaplus_back.jpg"
+      "/images/vivaplus_side_view_1783969009354.jpg",
+      "/images/vivaplus_back_view_1783969023710.jpg"
     ],
     sizes: [
       { name: "180 Tablets (Standard)", count: 180, priceModifier: 1.0 },
@@ -184,11 +188,12 @@ export const PRODUCTS: Product[] = [
     colorTheme: "indigo",
     colorGradStart: "#6366F1", // Indigo
     colorGradEnd: "#4338CA",
-    imageUrl: "/images/vivanego.jpg",
+    imageUrl: "/images/vivanego_bottle.jpg",
     imageUrls: [
+      "/images/vivanego_bottle.jpg",
       "/images/vivanego.jpg",
-      "/images/vivanego_side.jpg",
-      "/images/vivanego_back.jpg"
+      "/images/vivanego_side_view_1783969308696.jpg",
+      "/images/vivanego_back_view_1783969324509.jpg"
     ],
     sizes: [
       { name: "90 Tablets (Standard)", count: 90, priceModifier: 1.0 },
@@ -226,11 +231,12 @@ export const PRODUCTS: Product[] = [
     colorTheme: "violet",
     colorGradStart: "#8B5CF6", // Violet/Purple
     colorGradEnd: "#6D28D9",
-    imageUrl: "/images/hepaviva.jpg",
+    imageUrl: "/images/hepaviva_bottle.jpg",
     imageUrls: [
+      "/images/hepaviva_bottle.jpg",
       "/images/hepaviva.jpg",
-      "/images/hepaviva_side.jpg",
-      "/images/hepaviva_back.jpg"
+      "/images/hepaviva_side_view_1783968179065.jpg",
+      "/images/hepaviva_back_view_1783968194631.jpg"
     ],
     sizes: [
       { name: "90 Tablets (Standard)", count: 90, priceModifier: 1.0 },
@@ -267,11 +273,12 @@ export const PRODUCTS: Product[] = [
     colorTheme: "purple",
     colorGradStart: "#701A75", // Deep Plum
     colorGradEnd: "#4A044E",
-    imageUrl: "/images/nephroviva.jpg",
+    imageUrl: "/images/nephroviva_bottle.jpg",
     imageUrls: [
+      "/images/nephroviva_bottle.jpg",
       "/images/nephroviva.jpg",
-      "/images/nephroviva_side.jpg",
-      "/images/nephroviva_back.jpg"
+      "/images/nephroviva_side_1784025704913.jpg",
+      "/images/nephroviva_back_1784025720411.jpg"
     ],
     sizes: [
       { name: "90 Tablets (Standard)", count: 90, priceModifier: 1.0 },

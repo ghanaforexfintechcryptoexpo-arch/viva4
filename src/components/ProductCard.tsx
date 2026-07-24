@@ -28,34 +28,40 @@ export default function ProductCard({ product, onNavigate, onQuickAdd, ratingInf
       {/* CARD TOP / VISUAL IDENTIFIER */}
       <div 
         onClick={() => onNavigate("pdp", product.id)}
-        className="relative pt-12 pb-10 px-6 rounded-t-3xl overflow-hidden cursor-pointer flex flex-col items-center bg-slate-50 border-b border-slate-50 transition-colors duration-300"
+        className="relative pt-8 pb-6 px-6 rounded-t-3xl overflow-hidden cursor-pointer flex flex-col items-center bg-slate-50 border-b border-slate-100/60 transition-colors duration-300"
       >
         {/* Color accents gradient backdrop */}
         <div 
-          className="absolute -top-16 -right-16 w-36 h-36 rounded-full opacity-10 blur-xl transition-all duration-500 group-hover:scale-125"
+          className="absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-15 blur-2xl transition-all duration-500 group-hover:scale-125 group-hover:opacity-30"
           style={{ backgroundColor: product.colorGradStart }}
         />
         
-        {/* Dynamic Supplement Bottle Illustration or Real Image */}
-        <div className="w-24 h-36 relative flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+        {/* Dynamic Supplement Bottle Studio Presentation Stage */}
+        <div className="w-full h-56 sm:h-60 relative flex items-center justify-center transition-transform duration-500 group-hover:scale-105">
+          {/* Ambient studio spotlight glow behind the bottle */}
+          <div 
+            className="absolute inset-4 rounded-full opacity-20 blur-2xl transition-all duration-500 group-hover:opacity-45"
+            style={{ backgroundColor: product.colorGradStart }}
+          />
+
           {product.imageUrl ? (
             <LazyImage 
               src={product.imageUrl} 
               alt={product.name}
-              placeholderHeight="h-36"
+              placeholderHeight="h-56"
               referrerPolicy="no-referrer"
-              className="max-h-36 max-w-full object-contain rounded-2xl drop-shadow-md"
+              className="max-h-52 sm:max-h-56 max-w-full object-contain rounded-2xl drop-shadow-xl transition-all duration-500 group-hover:drop-shadow-2xl relative z-10"
               customPlaceholder={
                 <div className="absolute inset-0 flex items-center justify-center bg-slate-50/40 rounded-2xl animate-pulse" id={`product-image-skeleton-${product.id}`}>
                   {/* Jar/Bottle Silhouette Shimmer Placeholder */}
-                  <div className="w-16 h-28 bg-slate-200 rounded-2xl relative shadow-3xs flex flex-col justify-between overflow-hidden border border-slate-300/40">
+                  <div className="w-20 h-36 bg-slate-200 rounded-2xl relative shadow-3xs flex flex-col justify-between overflow-hidden border border-slate-300/40">
                     {/* Cap area */}
-                    <div className="absolute top-0 w-full h-3 bg-slate-300" />
+                    <div className="absolute top-0 w-full h-4 bg-slate-300" />
                     {/* Label area inside silhouette */}
-                    <div className="bg-white mx-1.5 my-1.5 mt-5 rounded-lg p-1 text-center flex-1 flex flex-col justify-between shadow-3xs">
-                      <div className="h-2 bg-slate-100 rounded-xs w-5/6 mx-auto mt-1" />
-                      <div className="h-1 bg-slate-100 rounded-xs w-2/3 mx-auto" />
-                      <div className="h-2 bg-slate-200 rounded-xs w-3/4 mx-auto mb-1" />
+                    <div className="bg-white mx-2 my-2 mt-6 rounded-lg p-1.5 text-center flex-1 flex flex-col justify-between shadow-3xs">
+                      <div className="h-2.5 bg-slate-100 rounded-xs w-5/6 mx-auto mt-1" />
+                      <div className="h-1.5 bg-slate-100 rounded-xs w-2/3 mx-auto" />
+                      <div className="h-2.5 bg-slate-200 rounded-xs w-3/4 mx-auto mb-1" />
                     </div>
                   </div>
                 </div>

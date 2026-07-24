@@ -60,7 +60,7 @@ service cloud.firestore {
     // 3. User Orders Rules
     function isValidUserOrder(data) {
       return data.keys().hasAll(['shipName', 'shipEmail', 'shipAddress', 'shipCity', 'shipZip', 'total', 'items'])
-        && data.keys().size() <= 13
+        && data.keys().size() <= 15
         && data.shipName is string && data.shipName.size() <= 100
         && data.shipEmail is string && data.shipEmail.size() <= 150
         && data.shipAddress is string && data.shipAddress.size() <= 200
@@ -68,21 +68,22 @@ service cloud.firestore {
         && data.shipZip is string && data.shipZip.size() <= 20
         && (data.total is int || data.total is float) && data.total >= 0
         && data.items is list && data.items.size() > 0 && data.items.size() <= 20
-        && (!('userId' in data) || (data.userId is string && data.userId.size() <= 128 && (!isSignedIn() || data.userId == request.auth.uid)));
+        && (!('userId' in data) || (data.userId is string && data.userId.size() <= 128 && (!isSignedIn() || data.userId == request.auth.uid)))
+        && (!('status' in data) || (data.status is string && data.status.size() <= 30))
+        && (!('paymentStatus' in data) || (data.paymentStatus is string && data.paymentStatus.size() <= 30))
+        && (!('trackingCode' in data) || (data.trackingCode is string && data.trackingCode.size() <= 100));
     }
 
     match /user_orders/{orderId} {
-      // List rules: MUST explicitly enforce query safety
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list, get: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
       allow create: if isValidId(orderId) && isValidUserOrder(incoming());
-      allow update, delete: if false; // Orders are immutable
+      allow update, delete: if isAdmin();
     }
 
     // 4. Products Rules
     function isValidProduct(data) {
       return data.keys().hasAll(['id', 'name', 'goal', 'basePrice', 'colorTheme', 'colorGradStart', 'colorGradEnd', 'benefits', 'activeIngredients', 'directions', 'storageWarnings'])
-        && data.keys().size() <= 25
+        && data.keys().size() <= 32
         && data.id is string && data.id.size() <= 128
         && data.name is string && data.name.size() <= 150
         && (!('tagline' in data) || (data.tagline is string && data.tagline.size() <= 200))
@@ -105,12 +106,35 @@ service cloud.firestore {
         && (!('seoTitle' in data) || (data.seoTitle is string && data.seoTitle.size() <= 200))
         && (!('seoDescription' in data) || (data.seoDescription is string && data.seoDescription.size() <= 500))
         && (!('detailedCopy' in data) || (data.detailedCopy is string && data.detailedCopy.size() <= 2000))
-        && (!('specifications' in data) || (data.specifications is list));
+        && (!('specifications' in data) || (data.specifications is list))
+        && (!('brand' in data) || (data.brand is string && data.brand.size() <= 100))
+        && (!('sku' in data) || (data.sku is string && data.sku.size() <= 100))
+        && (!('discountPrice' in data) || (data.discountPrice is int || data.discountPrice is float))
+        && (!('stockQuantity' in data) || (data.stockQuantity is int))
+        && (!('featured' in data) || data.featured is bool)
+        && (!('collections' in data) || data.collections is list);
     }
 
     match /products/{productId} {
       allow read: if true;
       allow create, update, delete: if isValidId(productId) && isAdmin() && isValidProduct(incoming());
+    }
+
+    // 5. Collections Rules
+    match /collections/{collectionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 6. Customers Rules
+    match /customers/{customerId} {
+      allow read, write: if isAdmin();
+    }
+
+    // 7. Settings Rules
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

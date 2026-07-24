@@ -25,7 +25,12 @@ export default function PDP({ product, onAddToCart, onNavigate, currentUser, pro
   const [selectedSize, setSelectedSize] = useState<ProductSize>(product.sizes[0]);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"overview" | "ingredients" | "safety">("overview");
-  
+  const [selectedImage, setSelectedImage] = useState<string>(product.imageUrl || "");
+
+  useEffect(() => {
+    setSelectedImage(product.imageUrl || "");
+  }, [product]);
+
   // Hover zoom state
   const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({ display: "none" });
   const [zoomRatio, setZoomRatio] = useState(1.5);
@@ -114,7 +119,7 @@ export default function PDP({ product, onAddToCart, onNavigate, currentUser, pro
       height: `${lensSize}px`,
       backgroundSize: `${bgWidth}px ${bgHeight}px`,
       backgroundPosition: `${bgX}px ${bgY}px`,
-      backgroundImage: product.imageUrl ? `url(${product.imageUrl})` : "none",
+      backgroundImage: selectedImage ? `url(${selectedImage})` : "none",
     });
   };
 
@@ -218,17 +223,17 @@ export default function PDP({ product, onAddToCart, onNavigate, currentUser, pro
               </div>
 
               {/* High Contrast Supplement Bottle Model or Real Image */}
-              {product.imageUrl ? (
-                <div className="w-56 h-80 relative flex items-center justify-center transition-transform duration-300 group-hover:scale-102">
+              {selectedImage ? (
+                <div className="w-full h-full relative flex items-center justify-center transition-transform duration-300 group-hover:scale-102 p-2">
                   <LazyImage 
-                    src={product.imageUrl} 
+                    src={selectedImage} 
                     alt={product.name}
-                    placeholderHeight="h-80"
+                    placeholderHeight="h-[440px]"
                     referrerPolicy="no-referrer"
-                    className="max-h-80 max-w-full object-contain rounded-3xl drop-shadow-2xl"
+                    className="max-h-[400px] sm:max-h-[460px] max-w-full object-contain rounded-3xl drop-shadow-2xl relative z-10"
                   />
                   {/* Shadow Contact */}
-                  <div className="absolute -bottom-2 w-44 h-4 bg-slate-950/20 blur-md rounded-full" />
+                  <div className="absolute bottom-2 w-56 h-5 bg-slate-950/20 blur-md rounded-full" />
                 </div>
               ) : (
                 <div className="w-48 h-72 relative flex items-center justify-center transition-transform duration-300 group-hover:scale-102">
@@ -322,6 +327,55 @@ export default function PDP({ product, onAddToCart, onNavigate, currentUser, pro
                 </div>
               </div>
             </div>
+
+            {/* GALLERY MULTI-ANGLE IMAGE GRID */}
+            {(() => {
+              const galleryImages = Array.from(new Set([
+                ...(product.imageUrls || []),
+                ...(product.imageUrl ? [product.imageUrl] : [])
+              ]));
+              if (galleryImages.length <= 1) return null;
+
+              return (
+                <div className="p-4 bg-slate-50/90 border border-slate-200/70 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest block">
+                      Multi-Angle Inspection Gallery Grid ({galleryImages.length} Shots)
+                    </span>
+                    <span className="text-[9px] font-mono text-emerald-600 font-bold bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full">
+                      Click image to swap view
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
+                    {galleryImages.map((imgUrl, idx) => {
+                      const isSelected = selectedImage === imgUrl;
+                      return (
+                        <button
+                          key={`${imgUrl}-${idx}`}
+                          type="button"
+                          onClick={() => setSelectedImage(imgUrl)}
+                          className={`aspect-square rounded-xl border-2 p-1.5 bg-white transition-all duration-200 overflow-hidden cursor-pointer relative group ${
+                            isSelected
+                              ? "border-emerald-600 ring-2 ring-emerald-500/20 scale-102 shadow-sm"
+                              : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                          }`}
+                        >
+                          <LazyImage
+                            src={imgUrl}
+                            alt={`${product.name} angle ${idx + 1}`}
+                            placeholderHeight="h-full"
+                            className="w-full h-full object-contain rounded-lg"
+                          />
+                          <span className="absolute bottom-0.5 right-0.5 bg-slate-950/80 text-white text-[7px] font-mono font-bold px-1 py-0.2 rounded-xs">
+                            Angle {idx + 1}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* RIGHT COLUMN: CORE PRODUCT DETAILS & CONVERTING SYSTEM */}

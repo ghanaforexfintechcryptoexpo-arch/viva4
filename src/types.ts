@@ -41,6 +41,14 @@ export interface Product {
     feature: string;
     details: string;
   }[];
+
+  // Extended fields for complete Admin Dashboard integration
+  brand?: string;
+  sku?: string;
+  discountPrice?: number;
+  stockQuantity?: number;
+  featured?: boolean;
+  collections?: string[];
 }
 
 export interface CartItem {

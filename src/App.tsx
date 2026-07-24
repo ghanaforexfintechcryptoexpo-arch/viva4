@@ -72,18 +72,58 @@ export default function App() {
   // Sync dynamic products list from Firestore with static fallback
   useEffect(() => {
     try {
+      const sanitizeImgUrl = (url: string | undefined | null, staticFallback: string): string => {
+        if (!url) return staticFallback;
+        if (url.includes("proviva_bottle")) return "/images/proviva_bottle.jpg";
+        if (url.includes("vivalax_bottle")) return "/images/vivalax_bottle.jpg";
+        if (url.includes("vivadio_bottle")) return "/images/vivadio_bottle.jpg";
+        if (url.includes("vivaplus_bottle")) return "/images/vivaplus_bottle.jpg";
+        if (url.includes("vivanego_bottle")) return "/images/vivanego_bottle.jpg";
+        if (url.includes("hepaviva_bottle")) return "/images/hepaviva_bottle.jpg";
+        if (url.includes("nephroviva_bottle")) return "/images/nephroviva_bottle.jpg";
+        if (url.includes("vivalax_side")) return "/images/vivalax_side_view_1783968653467.jpg";
+        if (url.includes("vivalax_back")) return "/images/vivalax_back_view_1783968671769.jpg";
+        if (url.includes("vivadio_side")) return "/images/vivadio_side_view_1783967894190.jpg";
+        if (url.includes("vivadio_back")) return "/images/vivadio_back_view_1783967911854.jpg";
+        if (url.includes("vivaplus_side")) return "/images/vivaplus_side_view_1783969009354.jpg";
+        if (url.includes("vivaplus_back")) return "/images/vivaplus_back_view_1783969023710.jpg";
+        if (url.includes("vivanego_side")) return "/images/vivanego_side_view_1783969308696.jpg";
+        if (url.includes("vivanego_back")) return "/images/vivanego_back_view_1783969324509.jpg";
+        if (url.includes("hepaviva_side")) return "/images/hepaviva_side_view_1783968179065.jpg";
+        if (url.includes("hepaviva_back")) return "/images/hepaviva_back_view_1783968194631.jpg";
+        if (url.includes("nephroviva_side")) return "/images/nephroviva_side_1784025704913.jpg";
+        if (url.includes("nephroviva_back")) return "/images/nephroviva_back_1784025720411.jpg";
+        return url;
+      };
+
       const unsubscribe = onSnapshot(collection(db, "products"), (snapshot) => {
         if (!snapshot.empty) {
           const loadedProducts: Product[] = [];
           snapshot.forEach((doc) => {
             const data = doc.data();
             const staticProduct = PRODUCTS.find((p) => p.id === doc.id);
-            // Deep merge static default properties with Firestore document data to safeguard against corrupt or incomplete database records
+            
+            // Resolve primary image with sanitization
+            const rawImageUrl = data.imageUrl || staticProduct?.imageUrl || "/images/placeholder.png";
+            const cleanImageUrl = sanitizeImgUrl(rawImageUrl, staticProduct?.imageUrl || "/images/placeholder.png");
+
+            // Resolve and sanitize imageUrls array
+            let rawImageUrls: string[] = [];
+            if (Array.isArray(data.imageUrls) && data.imageUrls.length > 0) {
+              rawImageUrls = data.imageUrls;
+            } else if (staticProduct?.imageUrls) {
+              rawImageUrls = staticProduct.imageUrls;
+            } else {
+              rawImageUrls = [cleanImageUrl];
+            }
+
+            const cleanImageUrls = rawImageUrls.map(url => sanitizeImgUrl(url, cleanImageUrl));
+
+            // Deep merge static default properties with Firestore document data
             const mergedProduct: Product = {
               ...staticProduct,
               ...data,
               id: doc.id,
-              // Special safeguard: make sure sizes array is valid and non-empty
               sizes: Array.isArray(data.sizes) && data.sizes.length > 0 
                 ? data.sizes 
                 : (staticProduct?.sizes || [{ name: "180 Tablets (Standard)", count: 180, priceModifier: 1.0 }]),
@@ -99,11 +139,8 @@ export default function App() {
               specifications: Array.isArray(data.specifications) && data.specifications.length > 0 
                 ? data.specifications 
                 : (staticProduct?.specifications || []),
-              // If imageUrl is empty, use static fallback
-              imageUrl: data.imageUrl || staticProduct?.imageUrl || "/images/placeholder.png",
-              imageUrls: Array.isArray(data.imageUrls) && data.imageUrls.length > 0
-                ? data.imageUrls
-                : (staticProduct?.imageUrls || [data.imageUrl || staticProduct?.imageUrl || "/images/placeholder.png"])
+              imageUrl: cleanImageUrl,
+              imageUrls: cleanImageUrls
             } as Product;
             loadedProducts.push(mergedProduct);
           });

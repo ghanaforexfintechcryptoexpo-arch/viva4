@@ -914,6 +914,30 @@ export default function Homepage({
                 const categoryProducts = filteredProducts.filter((p) => p.goal === cat);
                 if (categoryProducts.length === 0) return null;
 
+                // Build gallery images for this category's formulations
+                const categoryGallery: { url: string; title: string; prod: Product }[] = [];
+                categoryProducts.forEach((prod) => {
+                  if (prod.imageUrl) {
+                    categoryGallery.push({ url: prod.imageUrl, title: "3D Studio Bottle", prod });
+                  }
+                  if (prod.imageUrls) {
+                    prod.imageUrls.forEach((url) => {
+                      if (url !== prod.imageUrl) {
+                        const title = url.includes("side")
+                          ? "Dosage & Side Spec"
+                          : url.includes("back")
+                          ? "Nutrition Facts"
+                          : "Outer Box Package";
+                        categoryGallery.push({ url, title, prod });
+                      }
+                    });
+                  }
+                  const benefitIcon = getBenefitIconUrl(prod.id);
+                  if (benefitIcon) {
+                    categoryGallery.push({ url: benefitIcon, title: "Clinical Vector Action", prod });
+                  }
+                });
+
                 return (
                   <div
                     key={cat}
@@ -921,7 +945,7 @@ export default function Homepage({
                     className="scroll-mt-36"
                   >
                     {/* Category Header */}
-                    <div className="border-b border-slate-200/60 pb-3 mb-8 flex justify-between items-end">
+                    <div className="border-b border-slate-200/60 pb-3 mb-6 flex justify-between items-end">
                       <div>
                         <span className="text-[10px] font-mono font-bold text-emerald-600 uppercase tracking-widest block">
                           Botanical Vector Support
@@ -934,6 +958,47 @@ export default function Homepage({
                         {categoryProducts.length} {categoryProducts.length === 1 ? "Formula" : "Formulas"}
                       </span>
                     </div>
+
+                    {/* Dedicated High-Resolution Formulation Image Grid */}
+                    {categoryGallery.length > 0 && (
+                      <div className="mb-8 p-4 bg-white border border-slate-200/80 rounded-2xl shadow-3xs">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            {cat} Formulations Image Grid ({categoryGallery.length} High-Res Views)
+                          </span>
+                          <span className="text-[9px] font-mono text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                            Grid View Gallery
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+                          {categoryGallery.map((item, idx) => (
+                            <div
+                              key={`${item.url}-${idx}`}
+                              onClick={() => handleOpenQuickView(item.prod)}
+                              className="group/img bg-slate-50 border border-slate-200/80 hover:border-emerald-500 rounded-2xl p-3 transition-all duration-300 hover:shadow-md cursor-pointer flex flex-col items-center text-center relative overflow-hidden"
+                            >
+                              <div className="w-full h-36 sm:h-44 bg-white rounded-xl p-2.5 flex items-center justify-center mb-2.5 border border-slate-100 group-hover/img:scale-105 transition-transform duration-300">
+                                <LazyImage
+                                  src={item.url}
+                                  alt={`${item.prod.name} ${item.title}`}
+                                  placeholderHeight="h-36"
+                                  referrerPolicy="no-referrer"
+                                  className="max-h-full max-w-full object-contain rounded-lg drop-shadow-sm"
+                                />
+                              </div>
+                              <span className="text-[10.5px] font-sans font-bold text-slate-800 leading-tight group-hover/img:text-emerald-700 transition-colors">
+                                {item.title}
+                              </span>
+                              <span className="text-[8.5px] font-mono text-slate-400 uppercase mt-0.5">
+                                {item.prod.name}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Category Products Responsive Grid */}
                     <motion.div
@@ -1085,7 +1150,7 @@ export default function Homepage({
                   return (
                     <>
                       {/* Carousel Stage */}
-                      <div className="w-full max-w-xs h-80 relative flex items-center justify-center z-10 overflow-hidden">
+                      <div className="w-full max-w-sm h-96 relative flex items-center justify-center z-10 overflow-hidden">
                         <AnimatePresence mode="wait">
                           <motion.div
                             key={currentSlideIndex}
@@ -1096,13 +1161,13 @@ export default function Homepage({
                             className="w-full h-full flex flex-col items-center justify-center p-4"
                           >
                             {currentSlide.type === "image" ? (
-                              <div className="relative group/zoom flex flex-col items-center justify-center">
+                              <div className="relative group/zoom flex flex-col items-center justify-center w-full h-full">
                                 <LazyImage
                                   src={currentSlide.url}
                                   alt={`${selectedQuickViewProduct.name} - ${currentSlide.label}`}
                                   referrerPolicy="no-referrer"
-                                  className="max-h-64 object-contain rounded-2xl drop-shadow-xl transition-transform duration-500 ease-out group-hover/carousel:scale-105"
-                                  placeholderHeight="h-64"
+                                  className="max-h-76 object-contain rounded-2xl drop-shadow-xl transition-transform duration-500 ease-out group-hover/carousel:scale-105"
+                                  placeholderHeight="h-76"
                                 />
                                 {/* Label overlay */}
                                 <span className="absolute bottom-[-16px] bg-slate-900/85 backdrop-blur-xs text-white px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold tracking-wider uppercase leading-none border border-slate-700/50">
@@ -1991,7 +2056,7 @@ export default function Homepage({
                           <div className="flex items-center gap-2.5 min-w-0">
                             <div className="relative w-12 h-12 bg-white border border-slate-100 rounded-xl shrink-0 overflow-hidden flex items-center justify-center p-1 shadow-3xs">
                               <LazyImage 
-                                src={complementaryProduct.imageUrl || (complementaryProduct.imageUrls && complementaryProduct.imageUrls[0]) || "/images/proviva_bottle_1784028385805.jpg"} 
+                                src={complementaryProduct.imageUrl || (complementaryProduct.imageUrls && complementaryProduct.imageUrls[0]) || "/images/proviva_bottle.jpg"} 
                                 alt={complementaryProduct.name}
                                 placeholderHeight="h-12"
                                 className="object-contain w-full h-full"
